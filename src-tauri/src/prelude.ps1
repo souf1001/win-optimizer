@@ -37,9 +37,8 @@ function Set-TweakReg([string]$Path, [string]$Name, [string]$Type, $Value) {
     if ($key -and $null -ne $key.GetValue($Name)) {
         $kind = [string]$key.GetValueKind($Name)
         if ($kind -notin 'DWord', 'QWord', 'String', 'ExpandString') { throw "$Path\$Name is a $kind value, which this app does not change" }
-        $current = $key.GetValue($Name, $null, 'DoNotExpandEnvironmentNames')
-        # Already the target value: saving it would make Revert restore the tweak itself.
-        if ("$current" -ne "$Value") { Save-Original "reg:$Path|$Name" "$kind|$current" }
+        # Saved even when it already equals the target: Revert then leaves it as you had it.
+        Save-Original "reg:$Path|$Name" "$kind|$($key.GetValue($Name, $null, 'DoNotExpandEnvironmentNames'))"
     } else {
         Save-Original "reg:$Path|$Name" '-'
     }
@@ -80,7 +79,7 @@ function Get-SvcStartup([string]$Name) {
 
 function Set-TweakSvc([string]$Name, [string]$Startup) {
     $original = Get-SvcStartup $Name
-    if ($original -and $original -ne $Startup) { Save-Original "svc:$Name" $original }
+    if ($original) { Save-Original "svc:$Name" $original }
     Set-Svc $Name $Startup
 }
 
