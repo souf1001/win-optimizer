@@ -13,7 +13,7 @@ registry = [
 id = "explorer-this-pc"
 name = "Open Explorer to This PC"
 description = "Explorer opens on your drives instead of Home or Quick access."
-level = "light"
+level = "optional"
 registry = [
   { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name = 'LaunchTo', value = 1 },
 ]
@@ -31,7 +31,7 @@ registry = [
 [[tweak]]
 id = "chat-icon"
 name = "Remove Chat and Meet Now from the taskbar"
-description = "Removes the Teams Chat button (Windows 11) and Meet Now (Windows 10)."
+description = "Removes the Teams Chat button (Windows 11 23H2 and older) and Meet Now (Windows 10)."
 level = "light"
 registry = [
   { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name = 'TaskbarMn', value = 0, default = 1 },
@@ -49,6 +49,15 @@ registry = [
 ]
 
 [[tweak]]
+id = "default-printer"
+name = "Stop Windows changing the default printer"
+description = "Windows no longer makes the printer you used last the default."
+level = "light"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows', name = 'LegacyDefaultPrinterMode', value = 1, default = 0 },
+]
+
+[[tweak]]
 id = "recent-files"
 name = "Hide recent files"
 description = "Quick access, Start and jump lists stop showing recently opened files."
@@ -61,7 +70,7 @@ registry = [
 
 [[tweak]]
 id = "classic-context-menu"
-name = "Classic right-click menu"
+name = "Use the classic right-click menu"
 description = "Shows the full Windows 10 style menu right away instead of \"Show more options\". Windows 11 only."
 level = "optional"
 apply = "New-Item -Path 'HKCU:\\Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\\InprocServer32' -Value '' -Force | Out-Null"
@@ -88,7 +97,7 @@ registry = [
 
 [[tweak]]
 id = "search-icon"
-name = "Search icon instead of search box"
+name = "Show search as an icon"
 description = "Shrinks the taskbar search box to an icon."
 level = "optional"
 registry = [
@@ -97,7 +106,7 @@ registry = [
 
 [[tweak]]
 id = "dark-mode"
-name = "Dark mode"
+name = "Use dark mode"
 description = "Dark theme for Windows and apps."
 level = "optional"
 registry = [
@@ -121,4 +130,13 @@ description = "Removes Gallery from the Explorer sidebar. Windows 11 only."
 level = "optional"
 registry = [
   { path = 'HKCU:\Software\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}', name = 'System.IsPinnedToNameSpaceTree', value = 0 },
+]
+
+[[tweak]]
+id = "settings-home"
+name = "Hide the Settings home page"
+description = "Settings opens on System instead of the Home page with Microsoft 365 and Game Pass offers. Windows 11 only."
+level = "optional"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer', name = 'SettingsPageVisibility', type = "String", value = 'hide:home' },
 ]

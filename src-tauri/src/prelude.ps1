@@ -1,6 +1,6 @@
 # Helpers shared by every generated script. Runs in Windows PowerShell 5.1 as admin.
 # Output protocol (one line each): run:<id>, done:<id>, fail:<id>:<message>,
-# state:<id>:<0|1>, info:<text>, log:<text>.
+# state:<id>:<0|1>, info:<text>, warn:<text>, log:<text>.
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -13,6 +13,40 @@ function Set-Reg([string]$Path, [string]$Name, [string]$Type, $Value) {
 
 function Remove-Reg([string]$Path, [string]$Name) {
     Remove-ItemProperty -LiteralPath $Path -Name $Name -ErrorAction SilentlyContinue
+}
+
+# Original values are saved before a tweak first changes them, so Revert can restore
+# exactly what was there. The Windows default from the tweak file is only a fallback.
+$BackupRoot = 'HKLM:\SOFTWARE\WinOptimizer\Backup'
+
+function Save-Original([string]$Slot, [string]$Value) {
+    $key = "$BackupRoot\$script:TweakId"
+    if (-not (Test-Path -LiteralPath $key)) { New-Item -Path $key -Force | Out-Null }
+    if ($null -eq (Get-ItemProperty -LiteralPath $key -Name $Slot -ErrorAction SilentlyContinue)) {
+        New-ItemProperty -LiteralPath $key -Name $Slot -PropertyType String -Value $Value -Force | Out-Null
+    }
+}
+
+function Get-Original([string]$Slot) {
+    $item = Get-ItemProperty -LiteralPath "$BackupRoot\$script:TweakId" -Name $Slot -ErrorAction SilentlyContinue
+    if ($item) { return $item.$Slot }
+}
+
+function Set-TweakReg([string]$Path, [string]$Name, [string]$Type, $Value) {
+    $key = Get-Item -LiteralPath $Path -ErrorAction SilentlyContinue
+    $original = if ($key -and $null -ne $key.GetValue($Name)) {
+        "$($key.GetValueKind($Name))|$($key.GetValue($Name, $null, 'DoNotExpandEnvironmentNames'))"
+    } else { '-' }
+    Save-Original "reg:$Path|$Name" $original
+    Set-Reg $Path $Name $Type $Value
+}
+
+function Undo-TweakReg([string]$Path, [string]$Name, [string]$Type, $Default) {
+    $original = Get-Original "reg:$Path|$Name"
+    if ($original -eq '-') { Remove-Reg $Path $Name }
+    elseif ($original) { $kind, $value = $original -split '\|', 2; Set-Reg $Path $Name $kind $value }
+    elseif ($null -ne $Default) { Set-Reg $Path $Name $Type $Default }
+    else { Remove-Reg $Path $Name }
 }
 
 function Test-Reg([string]$Path, [string]$Name, $Value) {
@@ -28,6 +62,26 @@ function Set-Svc([string]$Name, [string]$Startup) {
     $out = sc.exe config $Name start= $StartModes[$Startup]
     if ($LASTEXITCODE -ne 0) { throw "${Name}: $out" }
     if ($Startup -eq 'Disabled') { Stop-Service -Name $Name -Force -ErrorAction SilentlyContinue }
+}
+
+function Get-SvcStartup([string]$Name) {
+    $key = Get-ItemProperty -LiteralPath "HKLM:\SYSTEM\CurrentControlSet\Services\$Name" -ErrorAction SilentlyContinue
+    switch ($key.Start) {
+        2 { if ($key.DelayedAutostart -eq 1) { 'AutomaticDelayed' } else { 'Automatic' } }
+        3 { 'Manual' }
+        4 { 'Disabled' }
+    }
+}
+
+function Set-TweakSvc([string]$Name, [string]$Startup) {
+    $original = Get-SvcStartup $Name
+    if ($original) { Save-Original "svc:$Name" $original }
+    Set-Svc $Name $Startup
+}
+
+function Undo-TweakSvc([string]$Name, [string]$Default) {
+    $original = Get-Original "svc:$Name"
+    Set-Svc $Name $(if ($original) { $original } else { $Default })
 }
 
 function Test-Svc([string]$Name, [string]$Startup) {
@@ -47,16 +101,29 @@ function Set-Task([string]$Path, [bool]$Enabled) {
     if ($Enabled) { $task | Enable-ScheduledTask | Out-Null } else { $task | Disable-ScheduledTask | Out-Null }
 }
 
+function Set-TweakTask([string]$Path) {
+    $task = Get-Task $Path
+    if (-not $task) { return }
+    Save-Original "task:$Path" ([string]$task.State)
+    $task | Disable-ScheduledTask | Out-Null
+}
+
+function Undo-TweakTask([string]$Path) {
+    if ((Get-Original "task:$Path") -ne 'Disabled') { Set-Task $Path $true }
+}
+
 function Test-Task([string]$Path) {
     $task = Get-Task $Path
     return (-not $task) -or ($task.State -eq 'Disabled')
 }
 
 function Remove-App([string]$Name) {
-    Get-AppxPackage -AllUsers -Name $Name | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
+    $problems = @()
+    Get-AppxPackage -AllUsers -Name $Name | Remove-AppxPackage -AllUsers -ErrorAction Continue -ErrorVariable +problems
     if ($null -eq $script:Provisioned) { $script:Provisioned = @(Get-AppxProvisionedPackage -Online) }
     $script:Provisioned | Where-Object DisplayName -like $Name |
-        Remove-AppxProvisionedPackage -Online -AllUsers -ErrorAction SilentlyContinue | Out-Null
+        Remove-AppxProvisionedPackage -Online -AllUsers -ErrorAction Continue -ErrorVariable +problems | Out-Null
+    if ($problems) { throw "${Name}: $($problems[0].Exception.Message)" }
 }
 
 function Test-App([string]$Name) {
@@ -83,6 +150,7 @@ function Set-PowerSetting([string]$Group, [string]$Setting, [int]$Value) {
     powercfg /setacvalueindex scheme_current $Group $Setting $Value
     powercfg /setdcvalueindex scheme_current $Group $Setting $Value
     powercfg /setactive scheme_current
+    if ($LASTEXITCODE) { throw "powercfg failed with exit code $LASTEXITCODE" }
 }
 
 function Test-PowerSetting([string]$Group, [string]$Setting, [int]$Value) {
@@ -90,15 +158,34 @@ function Test-PowerSetting([string]$Group, [string]$Setting, [int]$Value) {
     return (Test-Reg $path 'ACSettingIndex' $Value) -and (Test-Reg $path 'DCSettingIndex' $Value)
 }
 
-function Get-FolderSize([string[]]$Path) {
-    return [long](Get-ChildItem -Path $Path -Recurse -Force -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum
+# Lists everything below a folder, children before parents. Never enters junctions or
+# symlinks: a user could point one at a system folder and have us delete it as admin.
+function Get-Tree([string]$Path) {
+    foreach ($item in Get-ChildItem -LiteralPath $Path -Force -ErrorAction SilentlyContinue) {
+        $isLink = [bool]($item.Attributes -band [IO.FileAttributes]::ReparsePoint)
+        if ($item.PSIsContainer -and -not $isLink) { Get-Tree $item.FullName }
+        $item
+    }
 }
 
 # Empties folders (keeps the folders themselves) and reports the space freed.
 function Clear-Folder([string[]]$Path) {
-    $before = Get-FolderSize $Path
-    Get-ChildItem -Path $Path -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-    'Freed {0:N0} MB' -f (($before - (Get-FolderSize $Path)) / 1MB)
+    $freed = 0
+    foreach ($folder in $Path | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) }) {
+        foreach ($item in Get-Tree $folder) {
+            try {
+                # Directory.Delete is not recursive: it removes empty folders and links, never link targets.
+                if ($item.PSIsContainer) { [IO.Directory]::Delete($item.FullName) }
+                else {
+                    $size = $item.Length
+                    if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { $item.Attributes = 'Normal' }
+                    [IO.File]::Delete($item.FullName)
+                    $freed += $size
+                }
+            } catch {}
+        }
+    }
+    'Freed {0:N0} MB' -f ($freed / 1MB)
 }
 
 # Runs Disk Cleanup silently with the given handlers selected.
@@ -109,17 +196,21 @@ function Invoke-DiskCleanup([int]$Slot, [string[]]$Handlers) {
         if (Test-Path -LiteralPath "$root\$h") { Set-Reg "$root\$h" $flag DWord 2 }
     }
     $free = (Get-PSDrive C).Free
-    Start-Process cleanmgr.exe "/sagerun:$Slot" -Wait
+    $process = Start-Process cleanmgr.exe "/sagerun:$Slot" -PassThru
+    if (-not $process.WaitForExit(30 * 60 * 1000)) { $process.Kill(); throw 'Disk Cleanup did not finish within 30 minutes' }
     'Freed {0:N0} MB' -f (((Get-PSDrive C).Free - $free) / 1MB)
 }
 
-function Invoke-Tweak([string]$Id, [scriptblock]$Body) {
+function Invoke-Tweak([string]$Id, [scriptblock]$Body, [switch]$Revert) {
+    $script:TweakId = $Id
     Write-Output "run:$Id"
     try {
         & $Body | Out-String -Stream | Where-Object { $_.Trim() } | ForEach-Object { "log:$_" }
+        if ($Revert) { Remove-Item -LiteralPath "$BackupRoot\$Id" -Recurse -Force -ErrorAction SilentlyContinue }
         Write-Output "done:$Id"
     } catch {
-        Write-Output "fail:${Id}:$($_.Exception.Message)"
+        $script:Failed = $true
+        Write-Output "fail:${Id}:$($_.Exception.Message -replace '\s*\r?\n\s*', ' ')"
     }
 }
 
@@ -131,15 +222,26 @@ function Test-Tweak([string]$Id, [scriptblock]$Test) {
 
 function New-RestorePoint {
     Enable-ComputerRestore -Drive "$env:SystemDrive\"
-    # Windows allows one restore point per 24 hours unless this is 0.
-    Set-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore' 'SystemRestorePointCreationFrequency' DWord 0
-    Checkpoint-Computer -Description 'Win Optimizer' -RestorePointType MODIFY_SETTINGS
+    # Windows allows one restore point per 24 hours unless this is 0. Put it back afterwards.
+    $path = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
+    $name = 'SystemRestorePointCreationFrequency'
+    $old = (Get-ItemProperty -LiteralPath $path -Name $name -ErrorAction SilentlyContinue).$name
+    Set-Reg $path $name DWord 0
+    try { Checkpoint-Computer -Description 'Win Optimizer' -RestorePointType MODIFY_SETTINGS }
+    finally { if ($null -eq $old) { Remove-Reg $path $name } else { Set-Reg $path $name DWord $old } }
 }
 
+# Explorer reads most taskbar and folder settings only at start. Windows restarts it on its own.
 function Restart-Explorer {
-    Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 2
-    if (-not (Get-Process explorer -ErrorAction SilentlyContinue)) { Start-Process explorer }
+    $session = (Get-Process -Id $PID).SessionId
+    $shell = { Get-Process explorer -ErrorAction SilentlyContinue | Where-Object SessionId -eq $session }
+    if (-not (& $shell)) { return }
+    & $shell | Stop-Process -Force -ErrorAction SilentlyContinue
+    foreach ($i in 1..10) {
+        Start-Sleep -Seconds 1
+        if (& $shell) { return }
+    }
+    Start-Process explorer
 }
 
 function Write-SystemInfo {
@@ -147,6 +249,14 @@ function Write-SystemInfo {
     # ProductName still says "Windows 10" on Windows 11.
     $name = $os.ProductName
     if ([int]$os.CurrentBuild -ge 22000) { $name = $name -replace 'Windows 10', 'Windows 11' }
-    $ram = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)
+    $computer = Get-CimInstance Win32_ComputerSystem
+    $ram = [math]::Round($computer.TotalPhysicalMemory / 1GB)
     Write-Output "info:$name $($os.DisplayVersion) · build $($os.CurrentBuild) · $ram GB RAM"
+
+    # Elevating with a different admin account means per-user tweaks land in that account.
+    $console = $computer.UserName
+    $me = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+    if ($console -and $console -ne $me) {
+        Write-Output "warn:Running as $me while $console is signed in. Personal settings (HKCU) change for $me only."
+    }
 }

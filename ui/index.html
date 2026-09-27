@@ -9,10 +9,14 @@
 <body>
   <aside class="sidebar">
     <div class="brand">
-      <img src="icon.svg" alt="" width="20" height="20">
+      <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M4 13a6 6 0 0 1 12 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M10 13l3.4-4.2" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="10" cy="13" r="1.4" fill="var(--accent)"/>
+      </svg>
       <span>Win Optimizer</span>
     </div>
-    <nav id="nav"></nav>
+    <nav id="nav" aria-label="Categories"></nav>
     <div class="sidebar-footer">
       <div id="system" class="system">Checking system…</div>
       <button id="refresh" class="btn ghost small">Refresh status</button>
@@ -20,38 +24,42 @@
   </aside>
 
   <main>
-    <header class="header">
-      <div>
-        <h1 id="title">All tweaks</h1>
-        <p id="subtitle" class="subtitle"></p>
-      </div>
-      <div class="header-actions">
-        <input id="search" class="search" type="search" placeholder="Search" aria-label="Search tweaks" spellcheck="false">
-        <div class="segmented" id="presets" role="group" aria-label="Preset">
-          <button data-preset="light">Light</button>
-          <button data-preset="medium">Medium</button>
-          <button data-preset="aggressive">Aggressive</button>
+    <div class="scroll" id="scroll">
+      <header class="header">
+        <div>
+          <h1 id="title">All tweaks</h1>
+          <p id="subtitle" class="subtitle"></p>
         </div>
-      </div>
-    </header>
+        <div class="header-actions">
+          <label class="toggle"><input type="checkbox" id="hide-applied"> Hide applied</label>
+          <input id="search" class="search" type="search" placeholder="Search" aria-label="Search tweaks" spellcheck="false">
+          <div class="segmented" id="presets" role="group" aria-label="Preset">
+            <button data-preset="light">Light</button>
+            <button data-preset="medium">Medium</button>
+            <button data-preset="aggressive">Aggressive</button>
+          </div>
+        </div>
+      </header>
 
-    <p id="preset-hint" class="preset-hint"></p>
-    <div id="list"></div>
+      <p id="warning" class="warning" role="alert" hidden></p>
+      <p id="preset-hint" class="preset-hint"></p>
+      <div id="list"><p class="empty">Loading tweaks…</p></div>
+    </div>
 
     <div id="bulkbar" class="bulkbar" hidden>
-      <div>
+      <div class="bulk-info">
         <strong id="selected-count"></strong>
         <span id="selected-info" class="muted"></span>
       </div>
       <div class="bulk-actions">
         <button id="clear" class="btn ghost">Clear</button>
         <button id="revert" class="btn">Revert</button>
-        <button id="apply" class="btn primary">Apply</button>
+        <button id="apply" class="btn primary" title="Ctrl+Enter">Apply</button>
       </div>
     </div>
   </main>
 
-  <dialog id="dialog">
+  <dialog id="dialog" aria-labelledby="confirm-title">
     <form method="dialog" id="confirm">
       <h2 id="confirm-title"></h2>
       <ul id="confirm-notes" class="notes"></ul>
@@ -66,10 +74,13 @@
     </form>
 
     <div id="progress" hidden>
-      <h2 id="progress-title"></h2>
-      <div class="bar"><div id="bar-fill"></div></div>
+      <h2 id="progress-title" aria-live="polite"></h2>
+      <div class="bar" role="progressbar" aria-labelledby="progress-title" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div id="bar-fill"></div>
+      </div>
       <ol id="log" class="log"></ol>
       <div class="dialog-actions">
+        <button id="restart" class="btn" hidden>Restart now</button>
         <button id="progress-close" class="btn primary" disabled>Close</button>
       </div>
     </div>

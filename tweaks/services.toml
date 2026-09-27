@@ -2,91 +2,91 @@
 
 [[tweak]]
 id = "svc-maps"
-name = "Downloaded Maps Manager"
-description = "Only needed for offline maps. Set to start on demand."
+name = "Set Downloaded Maps Manager to manual"
+description = "Only needed for offline maps. Starts when needed."
 level = "light"
 services = [{ name = "MapsBroker", startup = "Manual", default = "AutomaticDelayed" }]
 
 [[tweak]]
 id = "svc-retail-demo"
-name = "Retail Demo"
+name = "Disable Retail Demo"
 description = "Store display mode for PCs in shops."
 level = "light"
 services = [{ name = "RetailDemo", startup = "Disabled", default = "Manual" }]
 
 [[tweak]]
 id = "svc-storage"
-name = "Storage Service"
-description = "Handles Storage Sense and app install locations. Set to start on demand."
+name = "Set Storage Service to manual"
+description = "Handles Storage Sense and app install locations."
 level = "medium"
 services = [{ name = "StorSvc", startup = "Manual", default = "Automatic" }]
 
 [[tweak]]
 id = "svc-link-tracking"
-name = "Distributed Link Tracking"
-description = "Keeps shortcuts working when files move between network PCs. Set to start on demand."
+name = "Set Distributed Link Tracking to manual"
+description = "Keeps shortcuts working when files move between network PCs."
 level = "medium"
 services = [{ name = "TrkWks", startup = "Manual", default = "Automatic" }]
 
 [[tweak]]
 id = "svc-offline-files"
-name = "Offline Files"
+name = "Disable Offline Files"
 description = "Caches files from network shares for offline use, which home PCs rarely do."
 level = "medium"
 services = [{ name = "CscService", startup = "Disabled", default = "Manual" }]
 
 [[tweak]]
 id = "svc-fax"
-name = "Fax"
+name = "Disable Fax"
 description = "Sends and receives faxes."
 level = "medium"
 services = [{ name = "Fax", startup = "Disabled", default = "Manual" }]
 
 [[tweak]]
 id = "svc-ai-fabric"
-name = "AI Fabric Service"
+name = "Set AI Fabric Service to manual"
 description = "Runs local AI models for Windows AI features. Set to start on demand. Windows 11 24H2 and later."
-level = "medium"
+level = "light"
 services = [{ name = "WSAIFabricSvc", startup = "Manual", default = "Automatic" }]
 
 [[tweak]]
 id = "svc-sysmain"
-name = "SysMain (Superfetch)"
-description = "Preloads apps into RAM. Lowers idle RAM and disk use. On an SSD you won't notice; on a hard drive apps start slower."
+name = "Disable SysMain (Superfetch)"
+description = "Preloads apps into RAM. The RAM it uses is cache that is freed on demand, so this mostly lowers background disk use. Also turns off memory compression, which hurts PCs with 8 GB or less."
 level = "aggressive"
 services = [{ name = "SysMain", startup = "Disabled", default = "Automatic" }]
 
 [[tweak]]
 id = "svc-search"
-name = "Windows Search indexing"
+name = "Disable Windows Search indexing"
 description = "Stops the file indexer. Start, Settings and Outlook search become slow. Only for people who use a tool like Everything."
 level = "aggressive"
 services = [{ name = "WSearch", startup = "Disabled", default = "AutomaticDelayed" }]
 
 [[tweak]]
 id = "svc-print"
-name = "Print Spooler"
+name = "Disable Print Spooler"
 description = "Breaks printing, including Print to PDF. Only if you never print."
 level = "aggressive"
 services = [{ name = "Spooler", startup = "Disabled", default = "Automatic" }]
 
 [[tweak]]
 id = "svc-ics"
-name = "Internet Connection Sharing"
-description = "Breaks Mobile hotspot. Only if you never share your connection."
+name = "Disable Internet Connection Sharing"
+description = "Breaks Mobile hotspot and the Hyper-V default network switch. Only if you use neither."
 level = "aggressive"
 services = [{ name = "SharedAccess", startup = "Disabled", default = "Manual" }]
 
 [[tweak]]
 id = "svc-cdp"
-name = "Connected Devices Platform"
-description = "Breaks Nearby Sharing, Phone Link and syncing with other devices. Set to start on demand."
+name = "Set Connected Devices Platform to manual"
+description = "Breaks Nearby Sharing, Phone Link and syncing with other devices."
 level = "aggressive"
 services = [{ name = "CDPSvc", startup = "Manual", default = "AutomaticDelayed" }]
 
 [[tweak]]
 id = "svc-diagnostics"
-name = "Diagnostic Policy Service"
-description = "Detects problems for the troubleshooters. They still work when started by hand."
+name = "Set Diagnostic Policy Service to manual"
+description = "Detects problems for the troubleshooters. Also stops per-app battery and data usage history and Task Manager's App history."
 level = "aggressive"
 services = [{ name = "DPS", startup = "Manual", default = "Automatic" }]

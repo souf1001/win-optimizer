@@ -2,8 +2,8 @@
 
 [[tweak]]
 id = "game-mode"
-name = "Turn on Game Mode"
-description = "Game Mode pauses Windows Update installs and driver installs while you play and prioritises the game. On by default, this makes sure."
+name = "Enable Game Mode"
+description = "Game Mode pauses Windows Update and driver installs while you play and prioritizes the game. On by default; this makes sure it stays on."
 level = "light"
 registry = [
   { path = 'HKCU:\Software\Microsoft\GameBar', name = 'AutoGameModeEnabled', value = 1 },
@@ -11,18 +11,8 @@ registry = [
 ]
 
 [[tweak]]
-id = "game-dvr"
-name = "Disable background recording"
-description = "Game DVR records the last minutes of gameplay in the background, which costs FPS. Manual recording with Win+Alt+R still works."
-level = "light"
-registry = [
-  { path = 'HKCU:\System\GameConfigStore', name = 'GameDVR_Enabled', value = 0, default = 1 },
-  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR', name = 'AppCaptureEnabled', value = 0 },
-]
-
-[[tweak]]
 id = "windowed-optimizations"
-name = "Optimizations for windowed games"
+name = "Enable windowed game optimizations"
 description = "DirectX 10 and 11 games in borderless or windowed mode get the same low latency as fullscreen, and VRR works there too. Windows 11 only."
 level = "light"
 apply = "Set-DirectXSetting 'SwapEffectUpgradeEnable' '1'"
@@ -42,10 +32,12 @@ registry = [
 
 [[tweak]]
 id = "game-bar"
-name = "Disable Game Bar"
-description = "Turns off the Win+G overlay and its recording service. Use this if you use Steam, NVIDIA or AMD overlays instead."
+name = "Disable Game Bar and game recording"
+description = "Turns off the Win+G overlay and all game and screen recording, including Win+Alt+R. Use this if you record with Steam, NVIDIA or AMD instead."
 level = "medium"
 registry = [
+  { path = 'HKCU:\System\GameConfigStore', name = 'GameDVR_Enabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR', name = 'AppCaptureEnabled', value = 0 },
   { path = 'HKCU:\Software\Microsoft\GameBar', name = 'UseNexusForGameBarEnabled', value = 0 },
   { path = 'HKCU:\Software\Microsoft\GameBar', name = 'ShowStartupPanel', value = 0 },
   { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR', name = 'AllowGameDVR', value = 0 },
@@ -53,8 +45,8 @@ registry = [
 
 [[tweak]]
 id = "hags"
-name = "Hardware-accelerated GPU scheduling"
-description = "The GPU manages its own memory queue. Lowers latency and is required for DLSS Frame Generation. Already on for most new GPUs."
+name = "Enable hardware-accelerated GPU scheduling"
+description = "Needed for DLSS and FSR Frame Generation. Otherwise little measurable effect. Already on for most new GPUs."
 level = "medium"
 restart = true
 registry = [
@@ -83,37 +75,9 @@ revert = "Set-PowerSetting '2a737441-1930-4402-8d77-b2bebba308a3' '48e6b7a6-50f5
 check = "Test-PowerSetting '2a737441-1930-4402-8d77-b2bebba308a3' '48e6b7a6-50f5-4782-a5d4-53bb8f07e226' 0"
 
 [[tweak]]
-id = "system-responsiveness"
-name = "Less CPU reserved for background tasks"
-description = "The multimedia scheduler reserves 20% of CPU time for background work. This lowers it to 10%, the smallest value Windows accepts."
-level = "medium"
-registry = [
-  { path = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile', name = 'SystemResponsiveness', value = 10, default = 20 },
-]
-
-[[tweak]]
-id = "priority-separation"
-name = "Prioritise the foreground app"
-description = "Gives the active window (your game) longer, fixed CPU time slices than background processes (Win32PrioritySeparation 0x26)."
-level = "medium"
-registry = [
-  { path = 'HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl', name = 'Win32PrioritySeparation', value = 38, default = 2 },
-]
-
-[[tweak]]
-id = "timer-resolution"
-name = "Global timer resolution"
-description = "Restores the pre-2004 behaviour where one app's high-resolution timer request (most games ask for 1 ms) applies system-wide. Can help frame pacing, costs some idle power. Windows 11 only."
-level = "aggressive"
-restart = true
-registry = [
-  { path = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel', name = 'GlobalTimerResolutionRequests', value = 1 },
-]
-
-[[tweak]]
 id = "vbs"
 name = "Disable Memory Integrity and VBS"
-description = "Virtualization-based security costs roughly 5-10% FPS in CPU-bound games. Turning it off lowers protection against kernel malware. Has no effect if your PC locks VBS in firmware."
+description = "The one tweak with a measurable FPS gain: 0-5% on most CPUs from 2018 on, 10-15% in some CPU-bound games, more on older CPUs. Lowers protection against kernel malware. No effect if VBS is locked in firmware."
 level = "aggressive"
 restart = true
 registry = [
@@ -129,4 +93,5 @@ level = "optional"
 restart = true
 registry = [
   { path = 'HKLM:\SOFTWARE\Microsoft\Windows\Dwm', name = 'OverlayTestMode', value = 5 },
+  { path = 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers', name = 'DisableOverlays', value = 1 },
 ]

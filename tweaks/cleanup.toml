@@ -22,14 +22,14 @@ name = "Run Disk Cleanup"
 description = "Runs the built-in Disk Cleanup for old updates, old drivers, setup and error logs, crash dumps and thumbnails. Can take several minutes."
 level = "medium"
 apply = '''
-Invoke-DiskCleanup 77 'Temporary Files', 'Temporary Setup Files', 'Update Cleanup', 'Windows Upgrade Log Files', 'Upgrade Discarded Files', 'Delivery Optimization Files', 'Device Driver Packages', 'Windows Error Reporting Files', 'System error memory dump files', 'System error minidump files', 'Setup Log Files', 'Old ChkDsk Files', 'Thumbnail Cache', 'D3D Shader Cache', 'Diagnostic Data Viewer database files'
+Invoke-DiskCleanup 77 'Temporary Files', 'Temporary Setup Files', 'Update Cleanup', 'Windows Upgrade Log Files', 'Upgrade Discarded Files', 'Delivery Optimization Files', 'Device Driver Packages', 'Windows Error Reporting Files', 'System error memory dump files', 'System error minidump files', 'Setup Log Files', 'Old ChkDsk Files', 'Thumbnail Cache', 'Diagnostic Data Viewer database files'
 '''
 
 [[tweak]]
 id = "clean-update-cache"
 name = "Clear Windows Update download cache"
-description = "Deletes downloaded update files. Fixes stuck updates; Windows downloads what it still needs."
-level = "medium"
+description = "Deletes downloaded update files. A repair step for stuck updates; Windows downloads what it still needs."
+level = "optional"
 apply = '''
 Stop-Service wuauserv, bits -Force -ErrorAction SilentlyContinue
 Clear-Folder "$env:SystemRoot\SoftwareDistribution\Download"
@@ -40,7 +40,7 @@ Start-Service wuauserv -ErrorAction SilentlyContinue
 id = "clean-recycle-bin"
 name = "Empty the Recycle Bin"
 description = "Permanently deletes everything in the Recycle Bin on all drives."
-level = "medium"
+level = "optional"
 apply = 'Clear-RecycleBin -Force -ErrorAction SilentlyContinue'
 
 [[tweak]]
@@ -57,7 +57,7 @@ description = "Removes all superseded Windows components (DISM ResetBase). Insta
 level = "aggressive"
 apply = '''
 Dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase /Quiet /NoRestart | Out-Null
-if ($LASTEXITCODE -ne 0) { throw "DISM exited with code $LASTEXITCODE" }
+if ($LASTEXITCODE -notin 0, 3010) { throw "DISM exited with code $LASTEXITCODE" }
 '''
 
 [[tweak]]

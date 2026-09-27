@@ -26,7 +26,6 @@ tasks = [
   '\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser',
   '\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser Exp',
   '\Microsoft\Windows\Application Experience\ProgramDataUpdater',
-  '\Microsoft\Windows\Application Experience\StartupAppTask',
   '\Microsoft\Windows\Autochk\Proxy',
   '\Microsoft\Windows\Customer Experience Improvement Program\Consolidator',
   '\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip',
@@ -81,7 +80,6 @@ registry = [
   { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SilentInstalledAppsEnabled', value = 0, default = 1 },
   { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SoftLandingEnabled', value = 0, default = 1 },
   { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SystemPaneSuggestionsEnabled', value = 0, default = 1 },
-  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'RotatingLockScreenEnabled', value = 0, default = 1 },
   { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'RotatingLockScreenOverlayEnabled', value = 0, default = 1 },
   { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SubscribedContent-310093Enabled', value = 0, default = 1 },
   { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SubscribedContent-338387Enabled', value = 0, default = 1 },
@@ -128,7 +126,7 @@ registry = [
 [[tweak]]
 id = "cortana"
 name = "Disable Cortana"
-description = "Discontinued assistant. Keeps it from running on older Windows 10 builds."
+description = "Discontinued assistant. Only does something on Windows 10."
 level = "light"
 registry = [
   { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search', name = 'AllowCortana', value = 0 },
@@ -145,8 +143,8 @@ registry = [
 
 [[tweak]]
 id = "inking-typing"
-name = "Disable typing, inking and speech data"
-description = "Stops collecting what you type, write and say to build personal dictionaries and online speech models."
+name = "Disable typing and inking data collection"
+description = "Stops collecting what you type and write to build a personal dictionary and typing insights."
 level = "light"
 registry = [
   { path = 'HKCU:\Software\Microsoft\InputPersonalization', name = 'RestrictImplicitInkCollection', value = 1, default = 0 },
@@ -154,6 +152,14 @@ registry = [
   { path = 'HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore', name = 'HarvestContacts', value = 0, default = 1 },
   { path = 'HKCU:\Software\Microsoft\Personalization\Settings', name = 'AcceptedPrivacyPolicy', value = 0 },
   { path = 'HKCU:\Software\Microsoft\Input\TIPC', name = 'Enabled', value = 0 },
+]
+
+[[tweak]]
+id = "online-speech"
+name = "Disable online speech recognition"
+description = "Your voice is no longer sent to Microsoft. Voice typing (Win+H) and Voice Access stop working."
+level = "medium"
+registry = [
   { path = 'HKCU:\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy', name = 'HasAccepted', value = 0 },
 ]
 
@@ -178,7 +184,7 @@ registry = [
 [[tweak]]
 id = "delivery-optimization"
 name = "Disable update sharing (Delivery Optimization)"
-description = "Stops your PC from uploading Windows updates to other PCs. Saves upload bandwidth, which online games need."
+description = "Stops your PC from sharing downloaded Windows updates with other PCs on your network."
 level = "light"
 registry = [
   { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization', name = 'DODownloadMode', value = 0 },
@@ -249,7 +255,7 @@ registry = [
 [[tweak]]
 id = "copilot"
 name = "Disable Copilot"
-description = "Hides the Copilot button and lets Windows remove the Copilot app (Windows 11, April 2026 update or later)."
+description = "Sets the Copilot policies. On Windows 11 24H2 and later Copilot is a normal app: use \"Remove Copilot app\" under Bloatware to get rid of it."
 level = "medium"
 registry = [
   { path = 'HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot', name = 'TurnOffWindowsCopilot', value = 1 },
@@ -282,7 +288,7 @@ level = "aggressive"
 restart = true
 apply = '''
 if (Get-WindowsOptionalFeature -Online -FeatureName Recall -ErrorAction SilentlyContinue) {
-    Disable-WindowsOptionalFeature -Online -FeatureName Recall -Remove -NoRestart | Out-Null
+    Disable-WindowsOptionalFeature -Online -FeatureName Recall -NoRestart | Out-Null
 }
 '''
 revert = '''
@@ -322,7 +328,7 @@ registry = [
 [[tweak]]
 id = "edge-background"
 name = "Stop Edge running in the background"
-description = "Disables Startup Boost and background mode, so Edge stops using RAM once it is closed."
+description = "Disables Startup Boost and background mode, so Edge stops using RAM once it is closed. Edge shows \"Managed by your organization\"."
 level = "light"
 registry = [
   { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'StartupBoostEnabled', value = 0 },
@@ -349,5 +355,6 @@ registry = [
   { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'PersonalizationReportingEnabled', value = 0 },
   { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'UserFeedbackAllowed', value = 0 },
   { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'DiagnosticData', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'HideFirstRunExperience', value = 1 },
   { path = 'HKLM:\SOFTWARE\Policies\Microsoft\EdgeUpdate', name = 'CreateDesktopShortcutDefault', value = 0 },
 ]

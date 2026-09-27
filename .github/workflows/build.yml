@@ -4,22 +4,26 @@ on:
   push:
   workflow_dispatch:
 
+# Read-only by default. Only the release job below can write.
+permissions:
+  contents: read
+
 jobs:
   windows:
     runs-on: windows-latest
-    permissions:
-      contents: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
           cache: npm
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           workspaces: src-tauri
 
@@ -30,18 +34,27 @@ jobs:
 
       # The runner is a throwaway Windows VM, so it is safe to really apply and revert tweaks here.
       - name: Apply, check and revert every tweak
-        run: cargo test --manifest-path src-tauri/Cargo.toml -- --ignored --nocapture
+        run: cargo test --manifest-path src-tauri/Cargo.toml -- --ignored --nocapture --test-threads 1
 
       - name: Build installer
         run: npm run build
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: win-optimizer-setup
           path: src-tauri/target/release/bundle/nsis/*.exe
 
-      - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v3
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
-          files: src-tauri/target/release/bundle/nsis/*.exe
+          name: win-optimizer-setup
+
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
+        with:
+          files: "*.exe"

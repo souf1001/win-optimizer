@@ -4,21 +4,24 @@ A small desktop app that debloats and tunes Windows 10 and 11 for gaming and eve
 It removes preinstalled apps, turns off telemetry and ads, lowers idle CPU and RAM use,
 and applies the gaming tweaks that actually make a difference.
 
-- **129 tweaks** in 8 categories: Bloatware, Privacy, Performance, Gaming, Services, Updates, Interface, Cleanup
+- **131 tweaks** in 8 categories: Bloatware, Privacy, Performance, Gaming, Services, Updates, Interface, Cleanup
 - **Three presets**: Light, Medium and Aggressive. Pick one, then add or remove single tweaks
 - **Live status**: the app checks which tweaks are already applied on your PC
-- **Undo**: every tweak except app removal and cleanup can be reverted to the Windows default
+- **Undo**: the app saves your original values before changing anything, and Revert puts exactly those back. App removal and cleanup can't be undone
 - **Transparent**: expand any tweak to see the exact registry values, services, tasks or script it touches
 - **Restore point** before every run (optional, on by default)
 - Small (a few MB), no background process, no telemetry of its own
 
 ## Presets
 
-| Preset | What it includes |
-| --- | --- |
-| Light | Safe changes nobody misses: junk apps, telemetry, ads, web search in Start, background recording, Edge background mode |
-| Medium | Light, plus turning off features some people use: Copilot, Recall, Widgets, background Store apps, mouse acceleration, Ultimate Performance plan |
-| Aggressive | Everything, including trade-offs: Memory Integrity/VBS off, SysMain and Search indexing off, no driver updates via Windows Update, Windows.old removal |
+| Preset | What it includes | What you notice |
+| --- | --- | --- |
+| Light | Junk apps, telemetry, ads and tips, web results in Start, Edge background mode, windowed game optimizations | Far fewer ads and popups, about 100-250 MB less RAM at idle, startup apps appear sooner |
+| Medium | Light, plus features some people use: Copilot, Recall, Widgets, Phone Link, background Store apps, Game Bar, mouse acceleration | Another 100-300 MB at idle (matters on 8 GB PCs), consistent mouse aim |
+| Aggressive | Everything, including trade-offs: Memory Integrity/VBS off, Ultimate Performance plan, SysMain and Search indexing off, Windows.old removal | VBS off is the one measurable FPS gain: 0-5% on most CPUs, 10-15% in some CPU-bound games |
+
+Honest expectations: no registry tweak doubles your FPS. The real wins are a quieter, lighter
+Windows, fewer background spikes while you play, and the few gaming settings that actually matter.
 
 Tweaks marked *Optional* are personal taste (dark mode, classic context menu, taskbar on the left)
 and are never selected by a preset.
@@ -115,13 +118,27 @@ check = '''...'''    # returns $true when the tweak is applied
 
 Run `cargo test` afterwards. It validates every definition and parses the generated scripts.
 
+## Security
+
+The app runs as administrator, so it is built to not become a way in:
+
+- Scripts go to PowerShell through a pipe (stdin), never through a file another program could swap.
+- PowerShell is started by its full System32 path with a clean `PATH`, a pinned module path and
+  no profiler variables, so user-writable folders can't inject code into the elevated session.
+- Cleanup never follows junctions or symlinks, so a planted link can't redirect deletes to system folders.
+- The OneDrive uninstaller only runs if it is signed by Microsoft.
+- Only one script runs at a time. If the restore point fails, nothing is changed.
+- The web view only loads the bundled UI (strict CSP, no remote content) and all text is escaped.
+- CI actions are pinned to commit SHAs and the build job has read-only access.
+
 ## What this app deliberately does not do
 
 These show up in many "optimizer" lists but are placebo, outdated or harmful:
 
 - **Disable Windows Defender or Windows Update.** Tamper Protection reverts it, and the security cost is real.
 - **Disable the page file or memory compression.** Increases crashes and RAM pressure, and doesn't make games faster.
-- **Nagle's algorithm, NetworkThrottlingIndex, MMCSS "Games" priorities.** Most games use UDP or ignore MMCSS.
+- **Nagle's algorithm, NetworkThrottlingIndex, MMCSS priorities, SystemResponsiveness.** Most games use UDP or don't register with MMCSS.
+- **Win32PrioritySeparation and global timer resolution.** The first is the same as the client default, the second doesn't affect the game in focus.
 - **SvcHostSplitThresholdInKB.** Only lowers the number of svchost processes shown in Task Manager.
 - **Spectre/Meltdown mitigations off.** A security hole for almost no gain on current CPUs.
 - **Disable fullscreen optimizations, HPET, dynamic tick.** Windows 11 handles these better than the old tweaks.

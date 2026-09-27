@@ -2,7 +2,7 @@
 
 [[tweak]]
 id = "no-auto-restart"
-name = "No automatic restarts"
+name = "Block automatic restarts"
 description = "Windows Update won't restart the PC while you're signed in, and won't wake it up to install updates."
 level = "light"
 registry = [
@@ -12,8 +12,8 @@ registry = [
 
 [[tweak]]
 id = "no-early-features"
-name = "Don't get features early"
-description = "Turns off \"Get the latest updates as soon as they're available\". New features arrive once they're tested, not as previews."
+name = "Disable early feature updates"
+description = "Turns off \"Get the latest updates as soon as they're available\", so new features arrive once they're tested. Off by default; this makes sure."
 level = "light"
 registry = [
   { path = 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings', name = 'IsContinuousInnovationOptedIn', value = 0 },
@@ -31,7 +31,7 @@ registry = [
 
 [[tweak]]
 id = "no-driver-updates"
-name = "No drivers from Windows Update"
+name = "Block driver updates from Windows Update"
 description = "Windows stops replacing your GPU and other drivers with older versions. You have to update drivers yourself."
 level = "aggressive"
 registry = [
@@ -42,10 +42,15 @@ registry = [
 [[tweak]]
 id = "reserved-storage"
 name = "Disable reserved storage"
-description = "Frees about 7 GB Windows keeps for updates. Large updates may fail when the disk is nearly full. Fails while an update is pending."
+description = "Frees up to about 7 GB Windows keeps for updates. Large updates may fail when the disk is nearly full. Fails while an update is pending."
 level = "aggressive"
-apply = 'Set-WindowsReservedStorageState -State Disabled | Out-Null'
-revert = 'Set-WindowsReservedStorageState -State Enabled | Out-Null'
+apply = '''
+Save-Original 'state' ([string](Get-WindowsReservedStorageState).ReservedStorageState)
+Set-WindowsReservedStorageState -State Disabled | Out-Null
+'''
+revert = '''
+if ((Get-Original 'state') -ne 'Disabled') { Set-WindowsReservedStorageState -State Enabled | Out-Null }
+'''
 check = "(Get-WindowsReservedStorageState).ReservedStorageState -eq 'Disabled'"
 
 [[tweak]]
@@ -60,9 +65,28 @@ registry = [
 
 [[tweak]]
 id = "no-store-auto-update"
-name = "No automatic Store app updates"
+name = "Disable automatic Store app updates"
 description = "Microsoft Store apps only update when you open the Store. Stops downloads starting in the middle of a game."
 level = "optional"
 registry = [
   { path = 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore', name = 'AutoDownload', value = 2 },
 ]
+
+[[tweak]]
+id = "pin-version"
+name = "Stay on your current Windows version"
+description = "Blocks upgrades to the next yearly version (and the Windows 11 upgrade offer on Windows 10). Security updates keep coming until your version reaches end of support."
+level = "optional"
+apply = '''
+$os = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+$product = if ([int]$os.CurrentBuild -ge 22000) { 'Windows 11' } else { 'Windows 10' }
+$path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+Set-TweakReg $path 'TargetReleaseVersion' DWord 1
+Set-TweakReg $path 'ProductVersion' String $product
+Set-TweakReg $path 'TargetReleaseVersionInfo' String $os.DisplayVersion
+'''
+revert = '''
+$path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+foreach ($name in 'TargetReleaseVersion', 'ProductVersion', 'TargetReleaseVersionInfo') { Undo-TweakReg $path $name String $null }
+'''
+check = "Test-Reg 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate' 'TargetReleaseVersion' 1"

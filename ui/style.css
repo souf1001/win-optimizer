@@ -1,5 +1,6 @@
-/* Neutral grays (Geist / Radix), one accent, 1px borders instead of shadows.
-   Sizes follow the Windows 11 type ramp: 12 caption, 14 body, 20 subtitle. */
+/* Neutral grays (Geist / Radix), one accent, 1px borders; shadows only on overlays.
+   Sizes follow the Windows 11 type ramp (12 caption, 14 body, 20 subtitle) on a 4px grid.
+   Text colors meet WCAG AA (4.5:1) on every background they are used on. */
 
 :root {
   --bg: #ffffff;
@@ -12,10 +13,10 @@
   --divider: #f0f0f0;
   --text: #171717;
   --text-2: #4d4d4d;
-  --text-3: #8d8d8d;
+  --text-3: #6f6f6f;
   --accent: #0072f5;
-  --accent-hover: #0062d1;
-  --accent-soft: #ebf5ff;
+  --primary: #006ae6;
+  --primary-hover: #0057ba;
   --success: #0f7b0f;
   --warning: #9d5d00;
   --danger: #c42b1c;
@@ -40,10 +41,8 @@
     --divider: #1f1f1f;
     --text: #ededed;
     --text-2: #a1a1a1;
-    --text-3: #7b7b7b;
+    --text-3: #8f8f8f;
     --accent: #0091ff;
-    --accent-hover: #52a8ff;
-    --accent-soft: #10233d;
     --success: #6ccb5f;
     --warning: #f0b429;
     --danger: #ff99a4;
@@ -88,7 +87,7 @@ h1, h2 { margin: 0; font-weight: 600; }
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 0 8px 16px;
   font-weight: 600;
 }
@@ -107,7 +106,6 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   background: none;
   color: var(--text-2);
   text-align: left;
-  cursor: default;
 }
 
 .nav-item:hover { background: var(--hover); color: var(--text); }
@@ -124,7 +122,7 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   background: var(--accent);
 }
 
-.count { color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.count { color: var(--text-3); font-size: 12px; font-weight: 400; font-variant-numeric: tabular-nums; }
 .nav-item.active .count { color: var(--text-2); }
 
 .sidebar-footer {
@@ -138,17 +136,20 @@ nav { display: flex; flex-direction: column; gap: 2px; }
 
 .system { color: var(--text-3); font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; }
 
-/* Main */
+/* Main: a scrolling area with the action bar pinned below it */
 
 main {
-  position: relative;
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
-  overflow-y: auto;
-  padding: 24px 32px 0;
 }
 
-#list { padding-bottom: 24px; }
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px;
+}
 
 .header {
   display: flex;
@@ -159,14 +160,16 @@ main {
 }
 
 h1 { font-size: 20px; line-height: 28px; letter-spacing: -0.01em; }
-.subtitle { margin: 2px 0 0; color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.subtitle { margin: 0; color: var(--text-3); font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; }
 
-.header-actions { display: flex; gap: 8px; align-items: center; }
+.header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+.toggle { display: flex; align-items: center; gap: 8px; margin-right: 8px; color: var(--text-2); font-size: 12px; }
 
 .search {
-  width: 220px;
+  width: 200px;
   height: 32px;
-  padding: 0 10px;
+  padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
@@ -185,6 +188,7 @@ h1 { font-size: 20px; line-height: 28px; letter-spacing: -0.01em; }
   background: var(--sidebar);
 }
 
+/* 26px + 2px padding + 1px border on each side = the 32px of the search box. */
 .segmented button {
   height: 26px;
   padding: 0 12px;
@@ -202,16 +206,34 @@ h1 { font-size: 20px; line-height: 28px; letter-spacing: -0.01em; }
   color: var(--text);
 }
 
-.preset-hint { margin: 16px 0 0; color: var(--text-2); font-size: 12px; min-height: 16px; line-height: 16px; }
+.warning {
+  margin: 16px 0 0;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--warning) 40%, transparent);
+  border-radius: var(--radius);
+  color: var(--warning);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.warning[hidden] { display: none; }
+
+.preset-hint { margin: 16px 0 0; color: var(--text-2); font-size: 12px; line-height: 16px; }
 
 /* Tweak list */
 
 .section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 24px 0 8px;
   color: var(--text-2);
   font-size: 12px;
-  font-weight: 600;
+  line-height: 16px;
 }
+
+/* The select-all box sits in the same column as the row checkboxes below it. */
+.section-title label { display: flex; align-items: center; gap: 16px; padding-left: 17px; }
 
 .group {
   border: 1px solid var(--border);
@@ -234,7 +256,6 @@ h1 { font-size: 20px; line-height: 28px; letter-spacing: -0.01em; }
 
 .row input[type="checkbox"] { margin-top: 2px; }
 
-.row-title { display: flex; align-items: center; gap: 8px; }
 .row-desc { margin-top: 2px; color: var(--text-3); font-size: 12px; line-height: 16px; }
 
 .badge {
@@ -251,12 +272,12 @@ h1 { font-size: 20px; line-height: 28px; letter-spacing: -0.01em; }
 
 .badge.aggressive { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 40%, transparent); }
 .badge.optional { color: var(--text-3); border-style: dashed; }
-.tag { color: var(--text-3); font-size: 12px; }
+.tag { margin-left: 4px; color: var(--text-3); font-size: 12px; }
 
 .state {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   width: 84px;
   height: 20px;
   color: var(--text-3);
@@ -289,12 +310,12 @@ h1 { font-size: 20px; line-height: 28px; letter-spacing: -0.01em; }
   background: var(--sidebar);
   color: var(--text-2);
   font-size: 12px;
-  line-height: 18px;
+  line-height: 20px;
   user-select: text;
 }
 
 .details div + div { margin-top: 4px; }
-.details code { color: var(--text); word-break: break-all; }
+.details code { color: var(--text); }
 .details pre { margin: 4px 0 0; white-space: pre-wrap; color: var(--text); }
 .details .label { color: var(--text-3); }
 
@@ -308,46 +329,57 @@ input[type="checkbox"] {
   width: 16px;
   height: 16px;
   margin: 0;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--text-3);
   border-radius: var(--radius);
   background: var(--surface);
 }
 
+input[type="checkbox"]:checked,
+input[type="checkbox"]:indeterminate {
+  border-color: var(--primary);
+  background: var(--primary) center / 14px no-repeat;
+}
+
 input[type="checkbox"]:checked {
-  border-color: var(--accent);
-  background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 14px no-repeat;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+input[type="checkbox"]:indeterminate {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 8h7' stroke='white' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 /* Buttons */
 
 .btn {
   height: 32px;
-  padding: 0 14px;
+  padding: 0 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
+  white-space: nowrap;
 }
 
-.btn:hover { background: var(--hover); }
+.btn:hover:not(:disabled) { background: var(--hover); }
 .btn:disabled { opacity: 0.5; }
-.btn.primary { border-color: var(--accent); background: var(--accent); color: #fff; }
-.btn.primary:hover:not(:disabled) { border-color: var(--accent-hover); background: var(--accent-hover); }
+.btn.primary { border-color: var(--primary); background: var(--primary); color: #fff; }
+.btn.primary:hover:not(:disabled) { border-color: var(--primary-hover); background: var(--primary-hover); }
 .btn.ghost { border-color: transparent; background: none; color: var(--text-2); }
-.btn.ghost:hover { background: var(--hover); color: var(--text); }
+.btn.ghost:hover:not(:disabled) { background: var(--hover); color: var(--text); }
 .btn.small { height: 28px; padding: 0 8px; font-size: 12px; margin-left: -8px; }
+
+.btn:active:not(:disabled), .nav-item:active, .segmented button:active { background: var(--active); }
+.btn.primary:active:not(:disabled) { background: var(--primary-hover); opacity: 0.9; }
 
 /* Bulk action bar */
 
 .bulkbar {
-  position: sticky;
-  bottom: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  margin: 0 auto 16px;
-  max-width: 720px;
+  flex-shrink: 0;
+  margin: 0 32px 16px;
   padding: 8px 8px 8px 16px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
@@ -358,6 +390,7 @@ input[type="checkbox"]:checked {
 }
 
 .bulkbar[hidden] { display: none; }
+.bulk-info { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .bulkbar strong { font-weight: 600; margin-right: 8px; }
 .bulk-actions { display: flex; gap: 8px; }
 
@@ -367,7 +400,7 @@ input[type="checkbox"]:checked {
 
 dialog {
   width: min(560px, calc(100vw - 32px));
-  padding: 20px;
+  padding: 24px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
   background: var(--surface);
@@ -376,18 +409,18 @@ dialog {
 }
 
 dialog::backdrop { background: var(--backdrop); }
-dialog h2 { font-size: 16px; line-height: 24px; }
+dialog h2 { font-size: 20px; line-height: 28px; letter-spacing: -0.01em; }
 
 .notes { margin: 12px 0 0; padding: 0; list-style: none; color: var(--text-2); }
 .notes li { padding: 2px 0; }
 .notes .warn { color: var(--warning); }
 
-.option { display: flex; gap: 10px; align-items: center; margin-top: 16px; }
+.option { display: flex; gap: 8px; align-items: center; margin-top: 16px; }
 
-.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
 
 .bar { height: 4px; margin-top: 12px; border-radius: 2px; background: var(--active); overflow: hidden; }
-#bar-fill { height: 100%; width: 0; background: var(--accent); transition: width 167ms linear; }
+#bar-fill { height: 100%; width: 0; background: var(--primary); transition: width 167ms linear; }
 
 .log {
   height: 280px;
@@ -399,7 +432,7 @@ dialog h2 { font-size: 16px; line-height: 24px; }
   border-radius: var(--radius);
   background: var(--sidebar);
   font-size: 12px;
-  line-height: 18px;
+  line-height: 20px;
   user-select: text;
 }
 

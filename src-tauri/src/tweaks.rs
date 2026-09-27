@@ -9,7 +9,7 @@ use std::fmt::Write;
 use std::sync::OnceLock;
 
 /// Helper functions every generated script starts with.
-const PRELUDE: &str = include_str!("prelude.ps1");
+pub const PRELUDE: &str = include_str!("prelude.ps1");
 
 /// Category files, in sidebar order.
 const FILES: &[(&str, &str)] = &[
@@ -111,10 +111,14 @@ pub fn all() -> &'static [Tweak] {
 }
 
 pub fn load() -> Result<Vec<Tweak>, String> {
-    let mut tweaks = Vec::new();
+    let mut tweaks: Vec<Tweak> = Vec::new();
     for (category, source) in FILES {
         let file: File = toml::from_str(source).map_err(|e| format!("{category}.toml: {e}"))?;
         for mut t in file.tweak {
+            validate(&t).map_err(|e| format!("{category}.toml, {}: {e}", t.id))?;
+            if tweaks.iter().any(|other| other.id == t.id) {
+                return Err(format!("duplicate id {}", t.id));
+            }
             t.category = category.to_string();
             t.reversible = t.apps.is_empty() && (t.apply.is_empty() || !t.revert.is_empty());
             t.checkable = check_expr(&t).is_some();
@@ -124,9 +128,40 @@ pub fn load() -> Result<Vec<Tweak>, String> {
     Ok(tweaks)
 }
 
+/// Rejects values that would end up unquoted in PowerShell or can't be reverted.
+fn validate(t: &Tweak) -> Result<(), String> {
+    let id_ok = !t.id.is_empty() && t.id.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
+    if !id_ok {
+        return Err("id must be lowercase kebab-case".into());
+    }
+    if t.name.is_empty() || t.description.is_empty() {
+        return Err("needs a name and a description".into());
+    }
+    for r in &t.registry {
+        if !(r.path.starts_with("HKLM:\\") || r.path.starts_with("HKCU:\\")) {
+            return Err(format!("registry path must start with HKLM:\\ or HKCU:\\: {}", r.path));
+        }
+        if !["DWord", "QWord", "String", "ExpandString"].contains(&r.kind.as_str()) {
+            return Err(format!("unsupported registry type {}", r.kind));
+        }
+        let numeric = r.kind == "DWord" || r.kind == "QWord";
+        if numeric != matches!(r.value, Value::Number(_)) {
+            return Err(format!("{} has the wrong value type for {}", r.name, r.kind));
+        }
+    }
+    let startups = ["Disabled", "Manual", "Automatic", "AutomaticDelayed"];
+    for v in &t.services {
+        if !startups.contains(&v.startup.as_str()) || !startups.contains(&v.default.as_str()) {
+            return Err(format!("unknown startup type for {}", v.name));
+        }
+    }
+    Ok(())
+}
+
 /// Quote a string for PowerShell (single quotes, no interpolation).
+/// PowerShell also treats the typographic quotes ‘ ’ ‚ ‛ as single quotes.
 fn quote(s: &str) -> String {
-    format!("'{}'", s.replace('\'', "''"))
+    format!("'{}'", s.replace(['\'', '\u{2018}', '\u{2019}', '\u{201A}', '\u{201B}'], "''"))
 }
 
 fn value(v: &Value) -> String {
@@ -139,13 +174,13 @@ fn value(v: &Value) -> String {
 fn apply_body(t: &Tweak) -> String {
     let mut s = String::new();
     for r in &t.registry {
-        let _ = writeln!(s, "Set-Reg {} {} {} {}", quote(&r.path), quote(&r.name), r.kind, value(&r.value));
+        let _ = writeln!(s, "Set-TweakReg {} {} {} {}", quote(&r.path), quote(&r.name), r.kind, value(&r.value));
     }
     for v in &t.services {
-        let _ = writeln!(s, "Set-Svc {} {}", quote(&v.name), v.startup);
+        let _ = writeln!(s, "Set-TweakSvc {} {}", quote(&v.name), v.startup);
     }
     for task in &t.tasks {
-        let _ = writeln!(s, "Set-Task {} $false", quote(task));
+        let _ = writeln!(s, "Set-TweakTask {}", quote(task));
     }
     for app in &t.apps {
         let _ = writeln!(s, "Remove-App {}", quote(app));
@@ -156,16 +191,14 @@ fn apply_body(t: &Tweak) -> String {
 fn revert_body(t: &Tweak) -> String {
     let mut s = String::new();
     for r in &t.registry {
-        let _ = match &r.default {
-            Some(d) => writeln!(s, "Set-Reg {} {} {} {}", quote(&r.path), quote(&r.name), r.kind, value(d)),
-            None => writeln!(s, "Remove-Reg {} {}", quote(&r.path), quote(&r.name)),
-        };
+        let default = r.default.as_ref().map_or("$null".to_string(), value);
+        let _ = writeln!(s, "Undo-TweakReg {} {} {} {}", quote(&r.path), quote(&r.name), r.kind, default);
     }
     for v in &t.services {
-        let _ = writeln!(s, "Set-Svc {} {}", quote(&v.name), v.default);
+        let _ = writeln!(s, "Undo-TweakSvc {} {}", quote(&v.name), v.default);
     }
     for task in &t.tasks {
-        let _ = writeln!(s, "Set-Task {} $true", quote(task));
+        let _ = writeln!(s, "Undo-TweakTask {}", quote(task));
     }
     s + &t.revert
 }
@@ -194,7 +227,7 @@ fn check_expr(t: &Tweak) -> Option<String> {
 /// Script that prints `state:<id>:1|0` for every checkable tweak.
 pub fn status_script(tweaks: &[Tweak]) -> String {
     let mut s = String::from(PRELUDE);
-    s.push_str("Write-SystemInfo\n");
+    s.push_str("try { Write-SystemInfo } catch { Write-Output \"info:$($_.Exception.Message)\" }\n");
     for t in tweaks {
         if let Some(expr) = check_expr(t) {
             let _ = writeln!(s, "Test-Tweak {} {{ {} }}", quote(&t.id), expr);
@@ -207,11 +240,13 @@ pub fn status_script(tweaks: &[Tweak]) -> String {
 pub fn run_script(tweaks: &[&Tweak], revert: bool, restore_point: bool) -> String {
     let mut s = String::from(PRELUDE);
     if restore_point {
-        s.push_str("Invoke-Tweak 'restore-point' { New-RestorePoint }\n");
+        // Without a restore point there is no safety net, so change nothing.
+        s.push_str("Invoke-Tweak 'restore-point' { New-RestorePoint }\nif ($script:Failed) { exit 1 }\n");
     }
     for t in tweaks {
         let body = if revert { revert_body(t) } else { apply_body(t) };
-        let _ = writeln!(s, "Invoke-Tweak {} {{\n{}\n}}", quote(&t.id), body.trim_end());
+        let flag = if revert { " -Revert" } else { "" };
+        let _ = writeln!(s, "Invoke-Tweak {} {{\n{}\n}}{flag}", quote(&t.id), body.trim_end());
     }
     s.push_str("Restart-Explorer\n");
     s
@@ -220,37 +255,11 @@ pub fn run_script(tweaks: &[&Tweak], revert: bool, restore_point: bool) -> Strin
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
 
     #[test]
     fn definitions_are_valid() {
-        let tweaks = load().unwrap();
-        let mut ids = HashSet::new();
-        for t in &tweaks {
-            assert!(ids.insert(t.id.as_str()), "duplicate id {}", t.id);
-            assert!(!t.name.is_empty() && !t.description.is_empty(), "{} needs a name and description", t.id);
-            assert!(!apply_body(t).trim().is_empty(), "{} does nothing", t.id);
-            for r in &t.registry {
-                assert!(
-                    r.path.starts_with("HKLM:\\") || r.path.starts_with("HKCU:\\"),
-                    "{}: bad path {}",
-                    t.id,
-                    r.path
-                );
-                let kinds = ["DWord", "QWord", "String", "ExpandString", "MultiString"];
-                assert!(kinds.contains(&r.kind.as_str()), "{}: bad type {}", t.id, r.kind);
-                if r.kind == "DWord" || r.kind == "QWord" {
-                    assert!(matches!(r.value, Value::Number(_)), "{}: {} needs a number", t.id, r.name);
-                }
-            }
-            let startups = ["Disabled", "Manual", "Automatic", "AutomaticDelayed"];
-            for v in &t.services {
-                assert!(
-                    startups.contains(&v.startup.as_str()) && startups.contains(&v.default.as_str()),
-                    "{}: bad startup",
-                    t.id
-                );
-            }
+        for t in load().unwrap() {
+            assert!(!apply_body(&t).trim().is_empty(), "{} does nothing", t.id);
         }
     }
 
