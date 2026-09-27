@@ -1,0 +1,351 @@
+# Telemetry, ads, suggestions and AI features.
+# Note: several policies below are only fully honored on Pro, Enterprise and Education.
+
+[[tweak]]
+id = "telemetry"
+name = "Disable telemetry"
+description = "Sets diagnostic data to the minimum your edition allows and stops the telemetry service. Home and Pro still send required data."
+level = "light"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection', name = 'AllowTelemetry', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection', name = 'MaxTelemetryAllowed', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection', name = 'AllowTelemetry', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection', name = 'DoNotShowFeedbackNotifications', value = 1 },
+]
+services = [
+  { name = "DiagTrack", startup = "Disabled", default = "Automatic" },
+]
+
+[[tweak]]
+id = "telemetry-tasks"
+name = "Disable telemetry tasks"
+description = "Scheduled tasks that collect compatibility, usage and disk data. Tasks that don't exist on your build are skipped."
+level = "light"
+tasks = [
+  '\Microsoft\Windows\Application Experience\MareBackup',
+  '\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser',
+  '\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser Exp',
+  '\Microsoft\Windows\Application Experience\ProgramDataUpdater',
+  '\Microsoft\Windows\Application Experience\StartupAppTask',
+  '\Microsoft\Windows\Autochk\Proxy',
+  '\Microsoft\Windows\Customer Experience Improvement Program\Consolidator',
+  '\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip',
+  '\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector',
+  '\Microsoft\Windows\Feedback\Siuf\DmClient',
+  '\Microsoft\Windows\Feedback\Siuf\DmClientOnScenarioDownload',
+  '\Microsoft\Windows\Maps\MapsToastTask',
+  '\Microsoft\Windows\Maps\MapsUpdateTask',
+]
+
+[[tweak]]
+id = "advertising-id"
+name = "Disable advertising ID"
+description = "Stops apps from using a per-user ID for targeted ads."
+level = "light"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo', name = 'Enabled', value = 0, default = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo', name = 'DisabledByGroupPolicy', value = 1 },
+]
+
+[[tweak]]
+id = "tailored-experiences"
+name = "Disable tailored experiences"
+description = "Stops Microsoft from using diagnostic data for personalised tips and offers."
+level = "light"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy', name = 'TailoredExperiencesWithDiagnosticDataEnabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Policies\Microsoft\Windows\CloudContent', name = 'DisableTailoredExperiencesWithDiagnosticData', value = 1 },
+]
+
+[[tweak]]
+id = "activity-history"
+name = "Disable activity history upload"
+description = "Stops Windows from recording and uploading which apps and files you open. Clipboard history keeps working."
+level = "light"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System', name = 'PublishUserActivities', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System', name = 'UploadUserActivities', value = 0 },
+]
+
+[[tweak]]
+id = "suggestions"
+name = "Disable ads and suggestions"
+description = "Removes suggested apps in Start, tips, lock screen ads, Settings suggestions, account nags and silent app installs."
+level = "light"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'ContentDeliveryAllowed', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'FeatureManagementEnabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'OemPreInstalledAppsEnabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'PreInstalledAppsEnabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'PreInstalledAppsEverEnabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SilentInstalledAppsEnabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SoftLandingEnabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SystemPaneSuggestionsEnabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'RotatingLockScreenEnabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'RotatingLockScreenOverlayEnabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SubscribedContent-310093Enabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SubscribedContent-338387Enabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SubscribedContent-338388Enabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SubscribedContent-338389Enabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SubscribedContent-338393Enabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SubscribedContent-353694Enabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SubscribedContent-353696Enabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name = 'SubscribedContent-353698Enabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\UserProfileEngagement', name = 'ScoobeSystemSettingEnabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SystemSettings\AccountNotifications', name = 'EnableAccountNotifications', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.Suggested', name = 'Enabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.BackupReminder', name = 'Enabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name = 'ShowSyncProviderNotifications', value = 0, default = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent', name = 'DisableWindowsConsumerFeatures', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent', name = 'DisableConsumerAccountStateContent', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent', name = 'DisableCloudOptimizedContent', value = 1 },
+]
+
+[[tweak]]
+id = "web-search"
+name = "Disable web results in Start search"
+description = "Start searches only your PC. No Bing results and no search highlights."
+level = "light"
+registry = [
+  { path = 'HKCU:\Software\Policies\Microsoft\Windows\Explorer', name = 'DisableSearchBoxSuggestions', value = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search', name = 'BingSearchEnabled', value = 0 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings', name = 'IsDynamicSearchBoxEnabled', value = 0, default = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search', name = 'EnableDynamicContentInWSB', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search', name = 'ConnectedSearchUseWeb', value = 0 },
+]
+
+[[tweak]]
+id = "cloud-search"
+name = "Disable cloud content in search"
+description = "Search no longer looks into OneDrive, Outlook and other Microsoft account content."
+level = "medium"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings', name = 'IsMSACloudSearchEnabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings', name = 'IsAADCloudSearchEnabled', value = 0, default = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search', name = 'AllowCloudSearch', value = 0 },
+]
+
+[[tweak]]
+id = "cortana"
+name = "Disable Cortana"
+description = "Discontinued assistant. Keeps it from running on older Windows 10 builds."
+level = "light"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search', name = 'AllowCortana', value = 0 },
+]
+
+[[tweak]]
+id = "feedback"
+name = "Disable feedback requests"
+description = "Stops the \"How likely are you to recommend Windows\" popups."
+level = "light"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Siuf\Rules', name = 'NumberOfSIUFInPeriod', value = 0 },
+]
+
+[[tweak]]
+id = "inking-typing"
+name = "Disable typing, inking and speech data"
+description = "Stops collecting what you type, write and say to build personal dictionaries and online speech models."
+level = "light"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\InputPersonalization', name = 'RestrictImplicitInkCollection', value = 1, default = 0 },
+  { path = 'HKCU:\Software\Microsoft\InputPersonalization', name = 'RestrictImplicitTextCollection', value = 1, default = 0 },
+  { path = 'HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore', name = 'HarvestContacts', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Personalization\Settings', name = 'AcceptedPrivacyPolicy', value = 0 },
+  { path = 'HKCU:\Software\Microsoft\Input\TIPC', name = 'Enabled', value = 0 },
+  { path = 'HKCU:\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy', name = 'HasAccepted', value = 0 },
+]
+
+[[tweak]]
+id = "language-list"
+name = "Hide language list from websites"
+description = "Websites can no longer read your installed languages for fingerprinting."
+level = "light"
+registry = [
+  { path = 'HKCU:\Control Panel\International\User Profile', name = 'HttpAcceptLanguageOptOut', value = 1 },
+]
+
+[[tweak]]
+id = "device-metadata"
+name = "Disable device metadata downloads"
+description = "Windows stops fetching icons and info for connected devices from the internet. Drivers still install."
+level = "light"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Device Metadata', name = 'PreventDeviceMetadataFromNetwork', value = 1 },
+]
+
+[[tweak]]
+id = "delivery-optimization"
+name = "Disable update sharing (Delivery Optimization)"
+description = "Stops your PC from uploading Windows updates to other PCs. Saves upload bandwidth, which online games need."
+level = "light"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization', name = 'DODownloadMode', value = 0 },
+]
+
+[[tweak]]
+id = "error-reporting"
+name = "Disable Windows Error Reporting"
+description = "Crash reports are no longer sent to Microsoft."
+level = "medium"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting', name = 'Disabled', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting', name = 'Disabled', value = 1 },
+]
+
+[[tweak]]
+id = "app-launch-tracking"
+name = "Disable app launch tracking"
+description = "Windows stops tracking which apps you start. The \"Most used\" list in Start stays empty."
+level = "medium"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name = 'Start_TrackProgs', value = 0, default = 1 },
+]
+
+[[tweak]]
+id = "cross-device"
+name = "Disable cross-device features"
+description = "Turns off Phone Link suggestions in Start, resuming phone apps on the PC and the share drag tray."
+level = "medium"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Start\Companions\Microsoft.YourPhone_8wekyb3d8bbwe', name = 'IsEnabled', value = 0 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Mobility', name = 'OptedIn', value = 0 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CrossDeviceResume\Configuration', name = 'IsResumeAllowed', value = 0 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CDP', name = 'DragTrayEnabled', value = 0 },
+]
+
+[[tweak]]
+id = "location"
+name = "Disable location access"
+description = "Turns off location for Windows and all apps. Weather, Maps and Find my device lose your position."
+level = "aggressive"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location', name = 'Value', type = "String", value = 'Deny', default = 'Allow' },
+]
+services = [
+  { name = "lfsvc", startup = "Disabled", default = "Manual" },
+]
+
+[[tweak]]
+id = "remote-assistance"
+name = "Disable Remote Assistance"
+description = "Blocks the legacy remote help feature. Remote Desktop is not affected."
+level = "light"
+registry = [
+  { path = 'HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance', name = 'fAllowToGetHelp', value = 0, default = 1 },
+]
+
+[[tweak]]
+id = "dev-telemetry"
+name = "Disable PowerShell 7 and .NET telemetry"
+description = "Sets the opt-out environment variables for PowerShell 7 and the .NET SDK."
+level = "light"
+registry = [
+  { path = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment', name = 'POWERSHELL_TELEMETRY_OPTOUT', type = "String", value = '1' },
+  { path = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment', name = 'DOTNET_CLI_TELEMETRY_OPTOUT', type = "String", value = '1' },
+]
+
+[[tweak]]
+id = "copilot"
+name = "Disable Copilot"
+description = "Hides the Copilot button and lets Windows remove the Copilot app (Windows 11, April 2026 update or later)."
+level = "medium"
+registry = [
+  { path = 'HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot', name = 'TurnOffWindowsCopilot', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot', name = 'TurnOffWindowsCopilot', value = 1 },
+  { path = 'HKCU:\Software\Policies\Microsoft\Windows\WindowsAI', name = 'RemoveMicrosoftCopilotApp', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI', name = 'RemoveMicrosoftCopilotApp', value = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name = 'ShowCopilotButton', value = 0, default = 1 },
+]
+
+[[tweak]]
+id = "recall"
+name = "Disable Recall, Click to Do and the Settings agent"
+description = "Copilot+ PC features that snapshot your screen, act on what is on it, or answer in Settings with AI."
+level = "medium"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI', name = 'DisableAIDataAnalysis', value = 1 },
+  { path = 'HKCU:\Software\Policies\Microsoft\Windows\WindowsAI', name = 'DisableAIDataAnalysis', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI', name = 'AllowRecallEnablement', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI', name = 'TurnOffSavingSnapshots', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI', name = 'DisableClickToDo', value = 1 },
+  { path = 'HKCU:\Software\Policies\Microsoft\Windows\WindowsAI', name = 'DisableClickToDo', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI', name = 'DisableSettingsAgent', value = 1 },
+]
+
+[[tweak]]
+id = "recall-feature"
+name = "Remove the Recall component"
+description = "Uninstalls the optional Recall feature itself. Only present on Copilot+ PCs."
+level = "aggressive"
+restart = true
+apply = '''
+if (Get-WindowsOptionalFeature -Online -FeatureName Recall -ErrorAction SilentlyContinue) {
+    Disable-WindowsOptionalFeature -Online -FeatureName Recall -Remove -NoRestart | Out-Null
+}
+'''
+revert = '''
+Enable-WindowsOptionalFeature -Online -FeatureName Recall -NoRestart | Out-Null
+'''
+check = '''
+$f = Get-WindowsOptionalFeature -Online -FeatureName Recall -ErrorAction SilentlyContinue
+-not $f -or $f.State -ne 'Enabled'
+'''
+
+[[tweak]]
+id = "ai-apps"
+name = "Disable AI in Paint and Notepad"
+description = "Removes Cocreator, image creator, generative fill and erase from Paint, and AI rewrite from Notepad."
+level = "medium"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint', name = 'DisableCocreator', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint', name = 'DisableGenerativeFill', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint', name = 'DisableGenerativeErase', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint', name = 'DisableImageCreator', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint', name = 'DisableRemoveBackground', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\WindowsNotepad', name = 'DisableAIFeatures', value = 1 },
+]
+
+[[tweak]]
+id = "widgets"
+name = "Disable Widgets and News"
+description = "Turns off the Widgets board (Windows 11) and News and Interests (Windows 10) through policy."
+level = "medium"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Dsh', name = 'AllowNewsAndInterests', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds', name = 'EnableFeeds', value = 0 },
+]
+
+[[tweak]]
+id = "edge-background"
+name = "Stop Edge running in the background"
+description = "Disables Startup Boost and background mode, so Edge stops using RAM once it is closed."
+level = "light"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'StartupBoostEnabled', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'BackgroundModeEnabled', value = 0 },
+]
+
+[[tweak]]
+id = "edge-clean"
+name = "Clean up Edge"
+description = "Removes the Copilot sidebar, AI compose, shopping assistant, new tab ads, recommendations and Edge telemetry. Edge shows \"Managed by your organization\"."
+level = "medium"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'HubsSidebarEnabled', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'CopilotPageContext', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'CopilotCDPPageContext', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'ComposeInlineEnabled', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'EdgeHistoryAISearchEnabled', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'NewTabPageBingChatEnabled', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'NewTabPageContentEnabled', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'ShowRecommendationsEnabled', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'EdgeShoppingAssistantEnabled', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'SpotlightExperiencesAndRecommendationsEnabled', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'DefaultBrowserSettingsCampaignEnabled', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'PersonalizationReportingEnabled', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'UserFeedbackAllowed', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', name = 'DiagnosticData', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\EdgeUpdate', name = 'CreateDesktopShortcutDefault', value = 0 },
+]

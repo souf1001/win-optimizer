@@ -1,0 +1,124 @@
+# Explorer, Start and taskbar. "optional" tweaks are personal taste and never part of a preset.
+
+[[tweak]]
+id = "file-extensions"
+name = "Show file extensions"
+description = "Shows .exe, .pdf and so on. Makes disguised files like invoice.pdf.exe easy to spot."
+level = "light"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name = 'HideFileExt', value = 0, default = 1 },
+]
+
+[[tweak]]
+id = "explorer-this-pc"
+name = "Open Explorer to This PC"
+description = "Explorer opens on your drives instead of Home or Quick access."
+level = "light"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name = 'LaunchTo', value = 1 },
+]
+
+[[tweak]]
+id = "start-recommendations"
+name = "Clean up the Start menu"
+description = "Removes tips, app promotions and Microsoft account notifications from Start."
+level = "light"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name = 'Start_IrisRecommendations', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name = 'Start_AccountNotifications', value = 0, default = 1 },
+]
+
+[[tweak]]
+id = "chat-icon"
+name = "Remove Chat and Meet Now from the taskbar"
+description = "Removes the Teams Chat button (Windows 11) and Meet Now (Windows 10)."
+level = "light"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name = 'TaskbarMn', value = 0, default = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Chat', name = 'ChatIcon', value = 3 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer', name = 'HideSCAMeetNow', value = 1 },
+]
+
+[[tweak]]
+id = "end-task"
+name = "Add End task to the taskbar"
+description = "Right-click a taskbar app to kill it, handy for frozen games. Windows 11 only."
+level = "light"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings', name = 'TaskbarEndTask', value = 1 },
+]
+
+[[tweak]]
+id = "recent-files"
+name = "Hide recent files"
+description = "Quick access, Start and jump lists stop showing recently opened files."
+level = "medium"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer', name = 'ShowRecent', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer', name = 'ShowFrequent', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name = 'Start_TrackDocs', value = 0, default = 1 },
+]
+
+[[tweak]]
+id = "classic-context-menu"
+name = "Classic right-click menu"
+description = "Shows the full Windows 10 style menu right away instead of \"Show more options\". Windows 11 only."
+level = "optional"
+apply = "New-Item -Path 'HKCU:\\Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\\InprocServer32' -Value '' -Force | Out-Null"
+revert = "Remove-Item -LiteralPath 'HKCU:\\Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}' -Recurse -Force -ErrorAction SilentlyContinue"
+check = "Test-Path 'HKCU:\\Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\\InprocServer32'"
+
+[[tweak]]
+id = "taskbar-left"
+name = "Align taskbar to the left"
+description = "Start button and apps sit on the left like Windows 10. Windows 11 only."
+level = "optional"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name = 'TaskbarAl', value = 0, default = 1 },
+]
+
+[[tweak]]
+id = "task-view-button"
+name = "Hide Task View button"
+description = "Removes the Task View button. Win+Tab still works."
+level = "optional"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name = 'ShowTaskViewButton', value = 0, default = 1 },
+]
+
+[[tweak]]
+id = "search-icon"
+name = "Search icon instead of search box"
+description = "Shrinks the taskbar search box to an icon."
+level = "optional"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search', name = 'SearchboxTaskbarMode', value = 1, default = 2 },
+]
+
+[[tweak]]
+id = "dark-mode"
+name = "Dark mode"
+description = "Dark theme for Windows and apps."
+level = "optional"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize', name = 'AppsUseLightTheme', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize', name = 'SystemUsesLightTheme', value = 0, default = 1 },
+]
+
+[[tweak]]
+id = "show-hidden"
+name = "Show hidden files"
+description = "Explorer shows hidden files and folders like AppData."
+level = "optional"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name = 'Hidden', value = 1, default = 2 },
+]
+
+[[tweak]]
+id = "hide-gallery"
+name = "Hide Gallery in Explorer"
+description = "Removes Gallery from the Explorer sidebar. Windows 11 only."
+level = "optional"
+registry = [
+  { path = 'HKCU:\Software\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}', name = 'System.IsPinnedToNameSpaceTree', value = 0 },
+]

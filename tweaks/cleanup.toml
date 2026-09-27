@@ -1,0 +1,68 @@
+# One-off actions that free disk space. They have no on/off state and can't be undone.
+
+[[tweak]]
+id = "clean-temp"
+name = "Delete temporary files"
+description = "Empties your temp folder and the Windows temp folder. Files in use are skipped."
+level = "light"
+apply = 'Clear-Folder $env:TEMP, "$env:SystemRoot\Temp"'
+
+[[tweak]]
+id = "clean-delivery-cache"
+name = "Delete update sharing cache"
+description = "Removes update files kept for Delivery Optimization."
+level = "light"
+apply = '''
+if (Get-Command Delete-DeliveryOptimizationCache -ErrorAction SilentlyContinue) { Delete-DeliveryOptimizationCache -Force }
+'''
+
+[[tweak]]
+id = "clean-disk"
+name = "Run Disk Cleanup"
+description = "Runs the built-in Disk Cleanup for old updates, old drivers, setup and error logs, crash dumps and thumbnails. Can take several minutes."
+level = "medium"
+apply = '''
+Invoke-DiskCleanup 77 'Temporary Files', 'Temporary Setup Files', 'Update Cleanup', 'Windows Upgrade Log Files', 'Upgrade Discarded Files', 'Delivery Optimization Files', 'Device Driver Packages', 'Windows Error Reporting Files', 'System error memory dump files', 'System error minidump files', 'Setup Log Files', 'Old ChkDsk Files', 'Thumbnail Cache', 'D3D Shader Cache', 'Diagnostic Data Viewer database files'
+'''
+
+[[tweak]]
+id = "clean-update-cache"
+name = "Clear Windows Update download cache"
+description = "Deletes downloaded update files. Fixes stuck updates; Windows downloads what it still needs."
+level = "medium"
+apply = '''
+Stop-Service wuauserv, bits -Force -ErrorAction SilentlyContinue
+Clear-Folder "$env:SystemRoot\SoftwareDistribution\Download"
+Start-Service wuauserv -ErrorAction SilentlyContinue
+'''
+
+[[tweak]]
+id = "clean-recycle-bin"
+name = "Empty the Recycle Bin"
+description = "Permanently deletes everything in the Recycle Bin on all drives."
+level = "medium"
+apply = 'Clear-RecycleBin -Force -ErrorAction SilentlyContinue'
+
+[[tweak]]
+id = "clean-previous-windows"
+name = "Remove previous Windows installation"
+description = "Deletes Windows.old after a feature update, often 10-30 GB. You can no longer go back to the previous version."
+level = "aggressive"
+apply = "Invoke-DiskCleanup 78 'Previous Installations'"
+
+[[tweak]]
+id = "clean-component-store"
+name = "Deep clean the component store"
+description = "Removes all superseded Windows components (DISM ResetBase). Installed updates can no longer be uninstalled. Takes 5-15 minutes."
+level = "aggressive"
+apply = '''
+Dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase /Quiet /NoRestart | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "DISM exited with code $LASTEXITCODE" }
+'''
+
+[[tweak]]
+id = "clean-shader-cache"
+name = "Clear GPU shader caches"
+description = "Deletes DirectX, NVIDIA and AMD shader caches. Useful after a driver update or when a game stutters or crashes. Games compile shaders again on first launch."
+level = "optional"
+apply = 'Clear-Folder "$env:LOCALAPPDATA\D3DSCache", "$env:LOCALAPPDATA\NVIDIA\DXCache", "$env:LOCALAPPDATA\NVIDIA\GLCache", "$env:LOCALAPPDATA\AMD\DxCache", "$env:LOCALAPPDATA\AMD\DxcCache", "$env:LOCALAPPDATA\AMD\VkCache"'

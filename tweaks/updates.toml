@@ -1,0 +1,68 @@
+# Windows Update behaviour. Updates keep installing; these only control when and what.
+
+[[tweak]]
+id = "no-auto-restart"
+name = "No automatic restarts"
+description = "Windows Update won't restart the PC while you're signed in, and won't wake it up to install updates."
+level = "light"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU', name = 'NoAutoRebootWithLoggedOnUsers', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU', name = 'AUPowerManagement', value = 0 },
+]
+
+[[tweak]]
+id = "no-early-features"
+name = "Don't get features early"
+description = "Turns off \"Get the latest updates as soon as they're available\". New features arrive once they're tested, not as previews."
+level = "light"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings', name = 'IsContinuousInnovationOptedIn', value = 0 },
+]
+
+[[tweak]]
+id = "defer-feature-updates"
+name = "Delay feature updates by a year"
+description = "Big yearly Windows versions install 365 days after release. Security updates are not delayed. Pro and higher."
+level = "medium"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', name = 'DeferFeatureUpdates', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', name = 'DeferFeatureUpdatesPeriodInDays', value = 365 },
+]
+
+[[tweak]]
+id = "no-driver-updates"
+name = "No drivers from Windows Update"
+description = "Windows stops replacing your GPU and other drivers with older versions. You have to update drivers yourself."
+level = "aggressive"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', name = 'ExcludeWUDriversInQualityUpdate', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching', name = 'SearchOrderConfig', value = 0, default = 1 },
+]
+
+[[tweak]]
+id = "reserved-storage"
+name = "Disable reserved storage"
+description = "Frees about 7 GB Windows keeps for updates. Large updates may fail when the disk is nearly full. Fails while an update is pending."
+level = "aggressive"
+apply = 'Set-WindowsReservedStorageState -State Disabled'
+revert = 'Set-WindowsReservedStorageState -State Enabled'
+check = "(Get-WindowsReservedStorageState).ReservedStorageState -eq 'Disabled'"
+
+[[tweak]]
+id = "defer-quality-updates"
+name = "Delay monthly updates by 4 days"
+description = "Monthly updates install 4 days after release, so broken updates get pulled before they reach you. Pro and higher."
+level = "optional"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', name = 'DeferQualityUpdates', value = 1 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', name = 'DeferQualityUpdatesPeriodInDays', value = 4 },
+]
+
+[[tweak]]
+id = "no-store-auto-update"
+name = "No automatic Store app updates"
+description = "Microsoft Store apps only update when you open the Store. Stops downloads starting in the middle of a game."
+level = "optional"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore', name = 'AutoDownload', value = 2 },
+]

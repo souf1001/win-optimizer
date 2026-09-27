@@ -1,0 +1,151 @@
+# Idle load, RAM, boot and responsiveness.
+
+[[tweak]]
+id = "startup-delay"
+name = "Remove startup app delay"
+description = "Windows waits about 10 seconds after sign-in before starting startup apps. This removes the wait."
+level = "light"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize', name = 'StartupDelayInMSec', value = 0 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize', name = 'WaitForIdleState', value = 0 },
+]
+
+[[tweak]]
+id = "menu-delay"
+name = "Faster menus"
+description = "Submenus open after 100 ms instead of 400 ms."
+level = "light"
+registry = [
+  { path = 'HKCU:\Control Panel\Desktop', name = 'MenuShowDelay', type = "String", value = '100', default = '400' },
+]
+
+[[tweak]]
+id = "background-apps"
+name = "Stop Store apps running in the background"
+description = "Store apps only run while open. Lowers idle CPU and RAM. Apps like Phone Link or Mail stop showing notifications while closed."
+level = "medium"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications', name = 'GlobalUserDisabled', value = 1, default = 0 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search', name = 'BackgroundAppGlobalToggle', value = 0, default = 1 },
+]
+
+[[tweak]]
+id = "animations"
+name = "Reduce animations"
+description = "Turns off window minimise and maximise, taskbar and Peek animations. Windows feel instant."
+level = "medium"
+restart = true
+registry = [
+  { path = 'HKCU:\Control Panel\Desktop\WindowMetrics', name = 'MinAnimate', type = "String", value = '0', default = '1' },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name = 'TaskbarAnimations', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\DWM', name = 'EnableAeroPeek', value = 0, default = 1 },
+]
+
+[[tweak]]
+id = "transparency"
+name = "Disable transparency effects"
+description = "Solid taskbar, Start and window backgrounds. Saves a little GPU work, mostly noticeable on integrated graphics."
+level = "medium"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize', name = 'EnableTransparency', value = 0, default = 1 },
+]
+
+[[tweak]]
+id = "folder-discovery"
+name = "Disable folder type detection"
+description = "Explorer stops scanning folders to guess if they hold pictures or music. Large folders like Downloads open faster."
+level = "medium"
+registry = [
+  { path = 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags\AllFolders\Shell', name = 'FolderType', type = "String", value = 'NotSpecified' },
+]
+
+[[tweak]]
+id = "faster-shutdown"
+name = "Faster shutdown"
+description = "Windows waits less for hung apps and services when shutting down. Apps still get a chance to save."
+level = "medium"
+registry = [
+  { path = 'HKLM:\SYSTEM\CurrentControlSet\Control', name = 'WaitToKillServiceTimeout', type = "String", value = '2000', default = '5000' },
+  { path = 'HKCU:\Control Panel\Desktop', name = 'HungAppTimeout', type = "String", value = '3000' },
+  { path = 'HKCU:\Control Panel\Desktop', name = 'WaitToKillAppTimeout', type = "String", value = '5000' },
+]
+
+[[tweak]]
+id = "fast-startup"
+name = "Disable Fast Startup"
+description = "Shut down becomes a real shutdown. Fixes driver and update glitches and dual boot issues. Cold boot takes a few seconds longer."
+level = "medium"
+registry = [
+  { path = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power', name = 'HiberbootEnabled', value = 0, default = 1 },
+]
+
+[[tweak]]
+id = "hibernation"
+name = "Disable hibernation"
+description = "Deletes hiberfil.sys, which frees disk space equal to roughly 40% of your RAM. Also disables Fast Startup. Laptops lose the Hibernate option."
+level = "medium"
+apply = 'powercfg /hibernate off'
+revert = 'powercfg /hibernate on'
+check = "Test-Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power' 'HibernateEnabled' 0"
+
+[[tweak]]
+id = "ultimate-plan"
+name = "Ultimate Performance power plan"
+description = "Keeps CPU cores awake and at full clock with no power-saving delays. Desktop PCs only; skipped when a battery is found."
+level = "medium"
+apply = '''
+if (Get-CimInstance Win32_Battery) { throw 'Skipped: meant for desktop PCs (battery detected)' }
+$plan = '3ff9831b-6f80-4830-8178-736cd4229e7b'
+if (-not ((powercfg /list) -match $plan)) {
+    powercfg /duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 $plan | Out-Null
+}
+powercfg /setactive $plan
+if ($LASTEXITCODE -ne 0) { throw 'This PC does not support extra power plans (Modern Standby)' }
+'''
+revert = '''
+powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e
+powercfg /delete 3ff9831b-6f80-4830-8178-736cd4229e7b | Out-Null
+'''
+check = "(Get-PowerScheme) -eq '3ff9831b-6f80-4830-8178-736cd4229e7b'"
+
+[[tweak]]
+id = "power-throttling"
+name = "Disable power throttling"
+description = "Background apps are no longer put into efficiency mode, so a game's launcher, voice chat and overlays keep full CPU speed. Desktop PCs only."
+level = "medium"
+apply = '''
+if (Get-CimInstance Win32_Battery) { throw 'Skipped: meant for desktop PCs (battery detected)' }
+Set-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling' 'PowerThrottlingOff' DWord 1
+'''
+revert = "Remove-Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottling' 'PowerThrottlingOff'"
+check = "Test-Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottling' 'PowerThrottlingOff' 1"
+
+[[tweak]]
+id = "defender-cpu"
+name = "Limit Defender scan CPU usage"
+description = "Scheduled Defender scans use at most 20% CPU at low priority instead of 50%. Protection stays fully on."
+level = "medium"
+apply = '''
+if (Get-Command Set-MpPreference -ErrorAction SilentlyContinue) {
+    Set-MpPreference -ScanAvgCPULoadFactor 20 -EnableLowCpuPriority $true
+}
+'''
+revert = '''
+if (Get-Command Set-MpPreference -ErrorAction SilentlyContinue) {
+    Set-MpPreference -ScanAvgCPULoadFactor 50 -EnableLowCpuPriority $false
+}
+'''
+check = '''
+if (-not (Get-Command Get-MpPreference -ErrorAction SilentlyContinue)) { return $true }
+$p = Get-MpPreference
+$p.ScanAvgCPULoadFactor -le 20 -and $p.EnableLowCpuPriority
+'''
+
+[[tweak]]
+id = "device-encryption"
+name = "Prevent automatic device encryption"
+description = "Stops Windows from turning on BitLocker by itself, which costs some SSD speed. Drives that are already encrypted stay encrypted."
+level = "aggressive"
+registry = [
+  { path = 'HKLM:\SYSTEM\CurrentControlSet\Control\BitLocker', name = 'PreventDeviceEncryption', value = 1 },
+]

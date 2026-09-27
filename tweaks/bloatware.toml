@@ -1,0 +1,268 @@
+# Preinstalled apps. Removal covers all users and the provisioned copy, so new
+# user accounts don't get them either. Apps can be reinstalled from the Microsoft Store.
+# Levels: light = nobody misses it, medium = some people use it, aggressive = may break things.
+
+[[tweak]]
+id = "app-bing"
+name = "Bing News, Finance and Sports"
+description = "Ad-supported news feeds that refresh in the background."
+level = "light"
+apps = ["Microsoft.BingNews", "Microsoft.BingFinance", "Microsoft.BingSports", "Microsoft.BingTravel", "Microsoft.BingFoodAndDrink", "Microsoft.BingHealthAndFitness", "Microsoft.BingTranslator", "Microsoft.BingSearch", "Microsoft.News"]
+
+[[tweak]]
+id = "app-tips"
+name = "Tips"
+description = "Onboarding tips app."
+level = "light"
+apps = ["Microsoft.Getstarted"]
+
+[[tweak]]
+id = "app-office-hub"
+name = "Microsoft 365 (Office) launcher"
+description = "A shortcut app that advertises Microsoft 365. Installed Office apps are not affected."
+level = "light"
+apps = ["Microsoft.MicrosoftOfficeHub"]
+
+[[tweak]]
+id = "app-solitaire"
+name = "Solitaire Collection"
+description = "Ad-supported card games."
+level = "light"
+apps = ["Microsoft.MicrosoftSolitaireCollection"]
+
+[[tweak]]
+id = "app-feedback"
+name = "Feedback Hub"
+description = "Only needed to send feedback to Microsoft or join the Insider program."
+level = "light"
+apps = ["Microsoft.WindowsFeedbackHub"]
+
+[[tweak]]
+id = "app-maps"
+name = "Maps"
+description = "Discontinued by Microsoft. Also stops the map download service from waking up."
+level = "light"
+apps = ["Microsoft.WindowsMaps"]
+
+[[tweak]]
+id = "app-movies"
+name = "Movies & TV"
+description = "Store front for renting films. Media Player still plays local videos."
+level = "light"
+apps = ["Microsoft.ZuneVideo"]
+
+[[tweak]]
+id = "app-legacy"
+name = "Legacy Windows 10 apps"
+description = "People, Skype, Paint 3D, 3D Viewer, Mixed Reality Portal, OneNote for Windows 10 and similar leftovers."
+level = "light"
+apps = ["Microsoft.People", "Microsoft.Messaging", "Microsoft.SkypeApp", "Microsoft.MixedReality.Portal", "Microsoft.Microsoft3DViewer", "Microsoft.Print3D", "Microsoft.3DBuilder", "Microsoft.MSPaint", "Microsoft.OneConnect", "Microsoft.Wallet", "Microsoft.Office.OneNote", "Microsoft.Office.Sway", "Microsoft.549981C3F5F10", "Microsoft.NetworkSpeedTest", "Microsoft.MicrosoftPowerBIForWindows"]
+
+[[tweak]]
+id = "app-clipchamp"
+name = "Clipchamp"
+description = "Web-based video editor with a paid tier."
+level = "light"
+apps = ["Clipchamp.Clipchamp"]
+
+[[tweak]]
+id = "app-family"
+name = "Microsoft Family"
+description = "Parental controls app. Family settings in your Microsoft account keep working."
+level = "light"
+apps = ["MicrosoftCorporationII.MicrosoftFamily"]
+
+[[tweak]]
+id = "app-power-automate"
+name = "Power Automate"
+description = "Desktop automation tool aimed at businesses."
+level = "light"
+apps = ["Microsoft.PowerAutomateDesktop"]
+
+[[tweak]]
+id = "app-devhome"
+name = "Dev Home"
+description = "Discontinued developer dashboard."
+level = "light"
+apps = ["Microsoft.Windows.DevHome"]
+
+[[tweak]]
+id = "app-teams-personal"
+name = "Teams (personal) and Chat"
+description = "The consumer Teams app that Windows 11 pins to the taskbar."
+level = "light"
+apps = ["MicrosoftTeams"]
+
+[[tweak]]
+id = "app-journal"
+name = "Journal"
+description = "Pen note-taking app."
+level = "light"
+apps = ["Microsoft.MicrosoftJournal"]
+
+[[tweak]]
+id = "app-pc-manager"
+name = "PC Manager"
+description = "Microsoft's own cleanup tool. Redundant next to this app."
+level = "light"
+apps = ["Microsoft.PCManager"]
+
+[[tweak]]
+id = "block-auto-install"
+name = "Block automatic install of Outlook and Dev Home"
+description = "Windows Update reinstalls new Outlook and Dev Home after you remove them. This marks those installs as done."
+level = "light"
+apply = '''
+foreach ($name in 'OutlookUpdate', 'DevHomeUpdate') {
+    $path = "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\Orchestrator\UScheduler_Oobe\$name"
+    if (Test-Path $path) { Set-Reg $path 'workCompleted' DWord 1 }
+}
+'''
+check = '''
+$keys = 'OutlookUpdate', 'DevHomeUpdate' | ForEach-Object { "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\Orchestrator\UScheduler_Oobe\$_" }
+@($keys | Where-Object { (Test-Path $_) -and -not (Test-Reg $_ 'workCompleted' 1) }).Count -eq 0
+'''
+
+[[tweak]]
+id = "block-oem-installers"
+name = "Block OEM firmware installers"
+description = "Stops the PC firmware (WPBT) from injecting vendor tools like Armoury Crate or Lenovo Vantage at boot. Install drivers yourself instead."
+level = "medium"
+restart = true
+registry = [
+  { path = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager', name = 'DisableWpbtExecution', value = 1 },
+]
+
+[[tweak]]
+id = "app-sponsored-games"
+name = "Sponsored games"
+description = "Candy Crush, Bubble Witch, March of Empires and other games that come preinstalled or as Start menu placeholders."
+level = "light"
+apps = ["king.com.*", "*CandyCrush*", "*BubbleWitch*", "*MarchofEmpires*", "*HiddenCity*", "*RoyalRevolt*", "*Asphalt8*", "*FarmVille*", "*DisneyMagicKingdoms*", "*CaesarsSlots*", "*COOKINGFEVER*", "*NYTCrossword*"]
+
+[[tweak]]
+id = "app-sponsored"
+name = "Sponsored apps"
+description = "Spotify, Netflix, Disney+, TikTok, Instagram, Facebook, Prime Video, LinkedIn and others. Removes them even if you installed them yourself."
+level = "medium"
+apps = ["SpotifyAB.SpotifyMusic", "*Netflix*", "Disney.37853FC22B2CE", "BytedancePte.Ltd.TikTok", "Facebook.Instagram*", "Facebook.Facebook", "*Twitter*", "AmazonVideo.PrimeVideo", "7EE7776C.LinkedInforWindows", "*Hulu*", "*Duolingo*", "*PicsArt*", "*Flipboard*", "*Shazam*", "*PandoraMedia*", "*AdobePhotoshopExpress*", "*EclipseManager*", "*ActiproSoftware*", "Amazon.com.Amazon", "*AutodeskSketchBook*", "*CyberLinkMediaSuite*", "*DrawboardPDF*", "*iHeartRadio*", "*OneCalendar*", "*PhototasticCollage*", "*PolarrPhotoEditor*", "*LiveWallpaper*", "*SlingTV*", "*TuneInRadio*", "*WinZipUniversal*", "*ACGMediaPlayer*"]
+
+[[tweak]]
+id = "app-weather"
+name = "Weather"
+description = "MSN Weather with ads."
+level = "medium"
+apps = ["Microsoft.BingWeather"]
+
+[[tweak]]
+id = "app-mail"
+name = "Mail, Calendar and new Outlook"
+description = "Mail and Calendar are discontinued; new Outlook is a web wrapper. Keep this if you read mail in these apps."
+level = "medium"
+apps = ["microsoft.windowscommunicationsapps", "Microsoft.OutlookForWindows"]
+
+[[tweak]]
+id = "app-todo"
+name = "Microsoft To Do"
+description = "Task list synced with your Microsoft account."
+level = "medium"
+apps = ["Microsoft.Todos"]
+
+[[tweak]]
+id = "app-sticky-notes"
+name = "Sticky Notes"
+description = "Notes app synced with your Microsoft account."
+level = "medium"
+apps = ["Microsoft.MicrosoftStickyNotes"]
+
+[[tweak]]
+id = "app-recorder"
+name = "Sound Recorder"
+description = "Simple audio recording app."
+level = "medium"
+apps = ["Microsoft.WindowsSoundRecorder"]
+
+[[tweak]]
+id = "app-alarms"
+name = "Clock"
+description = "Alarms, timers and focus sessions."
+level = "medium"
+apps = ["Microsoft.WindowsAlarms"]
+
+[[tweak]]
+id = "app-phone-link"
+name = "Phone Link"
+description = "Connects an Android phone or iPhone. Runs in the background once set up."
+level = "medium"
+apps = ["Microsoft.YourPhone", "MicrosoftWindows.CrossDevice"]
+
+[[tweak]]
+id = "app-copilot"
+name = "Copilot app"
+description = "The Copilot chat app. See Privacy for the policy that keeps it off."
+level = "medium"
+apps = ["Microsoft.Copilot", "Microsoft.Windows.Ai.Copilot.Provider", "Microsoft.Windows.AIHub"]
+
+[[tweak]]
+id = "app-widgets"
+name = "Widgets"
+description = "The news and weather board. Its background process uses 100-300 MB of RAM."
+level = "medium"
+apps = ["MicrosoftWindows.Client.WebExperience", "Microsoft.WidgetsPlatformRuntime"]
+
+[[tweak]]
+id = "app-teams-work"
+name = "Teams (work or school)"
+description = "Keep this if your employer or school uses Teams."
+level = "medium"
+apps = ["MSTeams"]
+
+[[tweak]]
+id = "app-quick-assist"
+name = "Quick Assist"
+description = "Remote help tool. A common target for phone scams if you never use it."
+level = "medium"
+apps = ["MicrosoftCorporationII.QuickAssist"]
+
+[[tweak]]
+id = "app-game-bar"
+name = "Xbox Game Bar"
+description = "The Win+G overlay with its recorder and performance widgets. Pressing Win+G afterwards shows a Store prompt."
+level = "aggressive"
+apps = ["Microsoft.XboxGamingOverlay", "Microsoft.XboxGameOverlay"]
+
+[[tweak]]
+id = "app-xbox"
+name = "Xbox app"
+description = "The Xbox and PC Game Pass launcher. Skip this if you play Game Pass games. Xbox sign-in for other games keeps working."
+level = "aggressive"
+apps = ["Microsoft.GamingApp", "Microsoft.XboxApp"]
+
+[[tweak]]
+id = "app-media-player"
+name = "Media Player"
+description = "The default music and video player. Only remove it if you use another player such as VLC or mpv."
+level = "aggressive"
+apps = ["Microsoft.ZuneMusic"]
+
+[[tweak]]
+id = "app-camera"
+name = "Camera"
+description = "Only needed to take photos with a webcam. Video calls in other apps keep working."
+level = "aggressive"
+apps = ["Microsoft.WindowsCamera"]
+
+[[tweak]]
+id = "app-onedrive"
+name = "OneDrive"
+description = "Uninstalls OneDrive. Files already in your OneDrive folder stay on disk, but stop syncing."
+level = "aggressive"
+apply = '''
+Stop-Process -Name OneDrive -Force -ErrorAction SilentlyContinue
+$setup = Get-Item "$env:LOCALAPPDATA\Microsoft\OneDrive\*\OneDriveSetup.exe", "$env:SystemRoot\System32\OneDriveSetup.exe", "$env:SystemRoot\SysWOW64\OneDriveSetup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $setup) { throw 'OneDrive setup not found' }
+Start-Process $setup.FullName '/uninstall' -Wait
+'''
+check = '''
+-not (Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe") -and -not (Test-Path "$env:ProgramFiles\Microsoft OneDrive\OneDrive.exe")
+'''

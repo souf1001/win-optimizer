@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Win Optimizer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="icon.svg" alt="" width="20" height="20">
+      <span>Win Optimizer</span>
+    </div>
+    <nav id="nav"></nav>
+    <div class="sidebar-footer">
+      <div id="system" class="system">Checking system…</div>
+      <button id="refresh" class="btn ghost small">Refresh status</button>
+    </div>
+  </aside>
+
+  <main>
+    <header class="header">
+      <div>
+        <h1 id="title">All tweaks</h1>
+        <p id="subtitle" class="subtitle"></p>
+      </div>
+      <div class="header-actions">
+        <input id="search" class="search" type="search" placeholder="Search" aria-label="Search tweaks" spellcheck="false">
+        <div class="segmented" id="presets" role="group" aria-label="Preset">
+          <button data-preset="light">Light</button>
+          <button data-preset="medium">Medium</button>
+          <button data-preset="aggressive">Aggressive</button>
+        </div>
+      </div>
+    </header>
+
+    <p id="preset-hint" class="preset-hint"></p>
+    <div id="list"></div>
+
+    <div id="bulkbar" class="bulkbar" hidden>
+      <div>
+        <strong id="selected-count"></strong>
+        <span id="selected-info" class="muted"></span>
+      </div>
+      <div class="bulk-actions">
+        <button id="clear" class="btn ghost">Clear</button>
+        <button id="revert" class="btn">Revert</button>
+        <button id="apply" class="btn primary">Apply</button>
+      </div>
+    </div>
+  </main>
+
+  <dialog id="dialog">
+    <form method="dialog" id="confirm">
+      <h2 id="confirm-title"></h2>
+      <ul id="confirm-notes" class="notes"></ul>
+      <label class="option">
+        <input type="checkbox" id="restore-point" checked>
+        <span>Create a restore point first <span class="muted">(recommended)</span></span>
+      </label>
+      <div class="dialog-actions">
+        <button value="cancel" class="btn ghost">Cancel</button>
+        <button value="ok" id="confirm-ok" class="btn primary">Apply</button>
+      </div>
+    </form>
+
+    <div id="progress" hidden>
+      <h2 id="progress-title"></h2>
+      <div class="bar"><div id="bar-fill"></div></div>
+      <ol id="log" class="log"></ol>
+      <div class="dialog-actions">
+        <button id="progress-close" class="btn primary" disabled>Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="main.js"></script>
+</body>
+</html>

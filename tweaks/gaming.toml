@@ -1,0 +1,132 @@
+# FPS, frame pacing and input.
+
+[[tweak]]
+id = "game-mode"
+name = "Turn on Game Mode"
+description = "Game Mode pauses Windows Update installs and driver installs while you play and prioritises the game. On by default, this makes sure."
+level = "light"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\GameBar', name = 'AutoGameModeEnabled', value = 1 },
+  { path = 'HKCU:\Software\Microsoft\GameBar', name = 'AllowAutoGameMode', value = 1 },
+]
+
+[[tweak]]
+id = "game-dvr"
+name = "Disable background recording"
+description = "Game DVR records the last minutes of gameplay in the background, which costs FPS. Manual recording with Win+Alt+R still works."
+level = "light"
+registry = [
+  { path = 'HKCU:\System\GameConfigStore', name = 'GameDVR_Enabled', value = 0, default = 1 },
+  { path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR', name = 'AppCaptureEnabled', value = 0 },
+]
+
+[[tweak]]
+id = "windowed-optimizations"
+name = "Optimizations for windowed games"
+description = "DirectX 10 and 11 games in borderless or windowed mode get the same low latency as fullscreen, and VRR works there too. Windows 11 only."
+level = "light"
+apply = "Set-DirectXSetting 'SwapEffectUpgradeEnable' '1'"
+revert = "Set-DirectXSetting 'SwapEffectUpgradeEnable' $null"
+check = "(Get-ItemProperty 'HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences' -ErrorAction SilentlyContinue).DirectXUserGlobalSettings -match 'SwapEffectUpgradeEnable=1'"
+
+[[tweak]]
+id = "sticky-keys"
+name = "Disable Sticky Keys shortcuts"
+description = "Pressing Shift five times (or holding it) no longer pops up Sticky, Filter or Toggle Keys in the middle of a game."
+level = "light"
+registry = [
+  { path = 'HKCU:\Control Panel\Accessibility\StickyKeys', name = 'Flags', type = "String", value = '506', default = '510' },
+  { path = 'HKCU:\Control Panel\Accessibility\Keyboard Response', name = 'Flags', type = "String", value = '122', default = '126' },
+  { path = 'HKCU:\Control Panel\Accessibility\ToggleKeys', name = 'Flags', type = "String", value = '58', default = '62' },
+]
+
+[[tweak]]
+id = "game-bar"
+name = "Disable Game Bar"
+description = "Turns off the Win+G overlay and its recording service. Use this if you use Steam, NVIDIA or AMD overlays instead."
+level = "medium"
+registry = [
+  { path = 'HKCU:\Software\Microsoft\GameBar', name = 'UseNexusForGameBarEnabled', value = 0 },
+  { path = 'HKCU:\Software\Microsoft\GameBar', name = 'ShowStartupPanel', value = 0 },
+  { path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR', name = 'AllowGameDVR', value = 0 },
+]
+
+[[tweak]]
+id = "hags"
+name = "Hardware-accelerated GPU scheduling"
+description = "The GPU manages its own memory queue. Lowers latency and is required for DLSS Frame Generation. Already on for most new GPUs."
+level = "medium"
+restart = true
+registry = [
+  { path = 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers', name = 'HwSchMode', value = 2 },
+]
+
+[[tweak]]
+id = "mouse-acceleration"
+name = "Disable mouse acceleration"
+description = "Turns off \"Enhance pointer precision\" so the same hand movement always moves the cursor the same distance. Takes effect after sign-out."
+level = "medium"
+restart = true
+registry = [
+  { path = 'HKCU:\Control Panel\Mouse', name = 'MouseSpeed', type = "String", value = '0', default = '1' },
+  { path = 'HKCU:\Control Panel\Mouse', name = 'MouseThreshold1', type = "String", value = '0', default = '6' },
+  { path = 'HKCU:\Control Panel\Mouse', name = 'MouseThreshold2', type = "String", value = '0', default = '10' },
+]
+
+[[tweak]]
+id = "usb-suspend"
+name = "Disable USB selective suspend"
+description = "USB devices are never put to sleep. Fixes mice, headsets and controllers that lag or disconnect for a moment. Uses a little more power."
+level = "medium"
+apply = "Set-PowerSetting '2a737441-1930-4402-8d77-b2bebba308a3' '48e6b7a6-50f5-4782-a5d4-53bb8f07e226' 0"
+revert = "Set-PowerSetting '2a737441-1930-4402-8d77-b2bebba308a3' '48e6b7a6-50f5-4782-a5d4-53bb8f07e226' 1"
+check = "Test-PowerSetting '2a737441-1930-4402-8d77-b2bebba308a3' '48e6b7a6-50f5-4782-a5d4-53bb8f07e226' 0"
+
+[[tweak]]
+id = "system-responsiveness"
+name = "Less CPU reserved for background tasks"
+description = "The multimedia scheduler reserves 20% of CPU time for background work. This lowers it to 10%, the smallest value Windows accepts."
+level = "medium"
+registry = [
+  { path = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile', name = 'SystemResponsiveness', value = 10, default = 20 },
+]
+
+[[tweak]]
+id = "priority-separation"
+name = "Prioritise the foreground app"
+description = "Gives the active window (your game) longer, fixed CPU time slices than background processes (Win32PrioritySeparation 0x26)."
+level = "medium"
+registry = [
+  { path = 'HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl', name = 'Win32PrioritySeparation', value = 38, default = 2 },
+]
+
+[[tweak]]
+id = "timer-resolution"
+name = "Global timer resolution"
+description = "Restores the pre-2004 behaviour where one app's high-resolution timer request (most games ask for 1 ms) applies system-wide. Can help frame pacing, costs some idle power. Windows 11 only."
+level = "aggressive"
+restart = true
+registry = [
+  { path = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel', name = 'GlobalTimerResolutionRequests', value = 1 },
+]
+
+[[tweak]]
+id = "vbs"
+name = "Disable Memory Integrity and VBS"
+description = "Virtualization-based security costs roughly 5-10% FPS in CPU-bound games. Turning it off lowers protection against kernel malware. Has no effect if your PC locks VBS in firmware."
+level = "aggressive"
+restart = true
+registry = [
+  { path = 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard', name = 'EnableVirtualizationBasedSecurity', value = 0 },
+  { path = 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity', name = 'Enabled', value = 0, default = 1 },
+]
+
+[[tweak]]
+id = "mpo"
+name = "Disable Multiplane Overlay"
+description = "Fixes flickering, black screens and stutter in browsers or on multi-monitor setups with some GPUs. Does not raise FPS."
+level = "optional"
+restart = true
+registry = [
+  { path = 'HKLM:\SOFTWARE\Microsoft\Windows\Dwm', name = 'OverlayTestMode', value = 5 },
+]
