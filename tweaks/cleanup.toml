@@ -5,7 +5,7 @@ id = "clean-temp"
 name = "Delete temporary files"
 description = "Empties your temp folder and the Windows temp folder. Files in use are skipped."
 level = "light"
-apply = 'Clear-Folder $env:TEMP, "$env:SystemRoot\Temp"'
+apply = 'Clear-Folder "$(Get-KnownFolder LocalApplicationData)\Temp", "$(Get-KnownFolder Windows)\Temp"'
 
 [[tweak]]
 id = "clean-delivery-cache"
@@ -32,7 +32,7 @@ description = "Deletes downloaded update files. A repair step for stuck updates;
 level = "optional"
 apply = '''
 Stop-Service wuauserv, bits -Force -ErrorAction SilentlyContinue
-Clear-Folder "$env:SystemRoot\SoftwareDistribution\Download"
+Clear-Folder "$(Get-KnownFolder Windows)\SoftwareDistribution\Download"
 Start-Service wuauserv -ErrorAction SilentlyContinue
 '''
 
@@ -65,4 +65,7 @@ id = "clean-shader-cache"
 name = "Clear GPU shader caches"
 description = "Deletes DirectX, NVIDIA and AMD shader caches. Useful after a driver update or when a game stutters or crashes. Games compile shaders again on first launch."
 level = "optional"
-apply = 'Clear-Folder "$env:LOCALAPPDATA\D3DSCache", "$env:LOCALAPPDATA\NVIDIA\DXCache", "$env:LOCALAPPDATA\NVIDIA\GLCache", "$env:LOCALAPPDATA\AMD\DxCache", "$env:LOCALAPPDATA\AMD\DxcCache", "$env:LOCALAPPDATA\AMD\VkCache"'
+apply = '''
+$local = Get-KnownFolder LocalApplicationData
+Clear-Folder "$local\D3DSCache", "$local\NVIDIA\DXCache", "$local\NVIDIA\GLCache", "$local\AMD\DxCache", "$local\AMD\DxcCache", "$local\AMD\VkCache"
+'''

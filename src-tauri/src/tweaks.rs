@@ -228,6 +228,7 @@ fn check_expr(t: &Tweak) -> Option<String> {
 pub fn status_script(tweaks: &[Tweak]) -> String {
     let mut s = String::from(PRELUDE);
     s.push_str("try { Write-SystemInfo } catch { Write-Output \"info:$($_.Exception.Message)\" }\n");
+    s.push_str("Write-Backups\n");
     for t in tweaks {
         if let Some(expr) = check_expr(t) {
             let _ = writeln!(s, "Test-Tweak {} {{ {} }}", quote(&t.id), expr);

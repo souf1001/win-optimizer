@@ -1,6 +1,6 @@
 # Helpers shared by every generated script. Runs in Windows PowerShell 5.1 as admin.
-# Output protocol (one line each): run:<id>, done:<id>, fail:<id>:<message>,
-# state:<id>:<0|1>, info:<text>, warn:<text>, log:<text>.
+# Output protocol (one line each): run:<id>, done:<id>, skip:<id>:<reason>, fail:<id>:<message>,
+# state:<id>:<0|1>, backup:<id>, info:<text>, warn:<text>, log:<text>.
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -34,10 +34,15 @@ function Get-Original([string]$Slot) {
 
 function Set-TweakReg([string]$Path, [string]$Name, [string]$Type, $Value) {
     $key = Get-Item -LiteralPath $Path -ErrorAction SilentlyContinue
-    $original = if ($key -and $null -ne $key.GetValue($Name)) {
-        "$($key.GetValueKind($Name))|$($key.GetValue($Name, $null, 'DoNotExpandEnvironmentNames'))"
-    } else { '-' }
-    Save-Original "reg:$Path|$Name" $original
+    if ($key -and $null -ne $key.GetValue($Name)) {
+        $kind = [string]$key.GetValueKind($Name)
+        if ($kind -notin 'DWord', 'QWord', 'String', 'ExpandString') { throw "$Path\$Name is a $kind value, which this app does not change" }
+        $current = $key.GetValue($Name, $null, 'DoNotExpandEnvironmentNames')
+        # Already the target value: saving it would make Revert restore the tweak itself.
+        if ("$current" -ne "$Value") { Save-Original "reg:$Path|$Name" "$kind|$current" }
+    } else {
+        Save-Original "reg:$Path|$Name" '-'
+    }
     Set-Reg $Path $Name $Type $Value
 }
 
@@ -75,7 +80,7 @@ function Get-SvcStartup([string]$Name) {
 
 function Set-TweakSvc([string]$Name, [string]$Startup) {
     $original = Get-SvcStartup $Name
-    if ($original) { Save-Original "svc:$Name" $original }
+    if ($original -and $original -ne $Startup) { Save-Original "svc:$Name" $original }
     Set-Svc $Name $Startup
 }
 
@@ -158,35 +163,53 @@ function Test-PowerSetting([string]$Group, [string]$Setting, [int]$Value) {
     return (Test-Reg $path 'ACSettingIndex' $Value) -and (Test-Reg $path 'DCSettingIndex' $Value)
 }
 
-# Lists everything below a folder, children before parents. Never enters junctions or
-# symlinks: a user could point one at a system folder and have us delete it as admin.
-function Get-Tree([string]$Path) {
-    foreach ($item in Get-ChildItem -LiteralPath $Path -Force -ErrorAction SilentlyContinue) {
-        $isLink = [bool]($item.Attributes -band [IO.FileAttributes]::ReparsePoint)
-        if ($item.PSIsContainer -and -not $isLink) { Get-Tree $item.FullName }
-        $item
-    }
+function Test-Link([string]$Path) {
+    return [bool]([IO.File]::GetAttributes($Path) -band [IO.FileAttributes]::ReparsePoint)
 }
 
-# Empties folders (keeps the folders themselves) and reports the space freed.
+# Deletes everything inside $Dir. Never enters junctions or symlinks, and re-checks the whole
+# folder chain right before each delete: a user could otherwise swap a folder for a link to a
+# system folder and have us delete it as admin.
+function Clear-Directory([string]$Dir, [string[]]$Chain) {
+    $Chain += $Dir
+    $safe = { -not ($Chain | Where-Object { Test-Link $_ }) }
+    $freed = 0
+    try { $entries = [IO.Directory]::GetFileSystemEntries($Dir) } catch { return 0 }
+    foreach ($entry in $entries) {
+        try {
+            if (-not (& $safe)) { return $freed }
+            $attributes = [IO.File]::GetAttributes($entry)
+            $isLink = [bool]($attributes -band [IO.FileAttributes]::ReparsePoint)
+            if ($attributes -band [IO.FileAttributes]::Directory) {
+                if (-not $isLink) { $freed += Clear-Directory $entry $Chain }
+                if (& $safe) { [IO.Directory]::Delete($entry) }   # not recursive: removes empty folders and links only
+            } else {
+                $size = if ($isLink) { 0 } else { (New-Object IO.FileInfo $entry).Length }
+                if (-not $isLink) { [IO.File]::SetAttributes($entry, 'Normal') }
+                if (& $safe) { [IO.File]::Delete($entry); $freed += $size }
+            }
+        } catch {}
+    }
+    return $freed
+}
+
+# Empties folders (keeps the folders themselves) and reports the space freed. Refuses folders
+# that are, or sit below, a junction or symlink.
 function Clear-Folder([string[]]$Path) {
     $freed = 0
-    foreach ($folder in $Path | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) }) {
-        foreach ($item in Get-Tree $folder) {
-            try {
-                # Directory.Delete is not recursive: it removes empty folders and links, never link targets.
-                if ($item.PSIsContainer) { [IO.Directory]::Delete($item.FullName) }
-                else {
-                    $size = $item.Length
-                    if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { $item.Attributes = 'Normal' }
-                    [IO.File]::Delete($item.FullName)
-                    $freed += $size
-                }
-            } catch {}
-        }
+    foreach ($folder in $Path) {
+        if (-not $folder -or -not [IO.Directory]::Exists($folder)) { continue }
+        $parents = @()
+        $parent = [IO.Directory]::GetParent($folder)
+        while ($parent) { $parents += $parent.FullName; $parent = $parent.Parent }
+        if ((Test-Link $folder) -or ($parents | Where-Object { Test-Link $_ })) { "Skipped $folder (it is a link)"; continue }
+        $freed += Clear-Directory $folder $parents
     }
     'Freed {0:N0} MB' -f ($freed / 1MB)
 }
+
+# Folders from the system instead of environment variables, which the user controls.
+function Get-KnownFolder([string]$Name) { [Environment]::GetFolderPath($Name) }
 
 # Runs Disk Cleanup silently with the given handlers selected.
 function Invoke-DiskCleanup([int]$Slot, [string[]]$Handlers) {
@@ -201,6 +224,9 @@ function Invoke-DiskCleanup([int]$Slot, [string[]]$Handlers) {
     'Freed {0:N0} MB' -f (((Get-PSDrive C).Free - $free) / 1MB)
 }
 
+# Ends a tweak early without counting it as applied or failed.
+function Skip-Tweak([string]$Reason) { throw "SKIP:$Reason" }
+
 function Invoke-Tweak([string]$Id, [scriptblock]$Body, [switch]$Revert) {
     $script:TweakId = $Id
     Write-Output "run:$Id"
@@ -209,9 +235,15 @@ function Invoke-Tweak([string]$Id, [scriptblock]$Body, [switch]$Revert) {
         if ($Revert) { Remove-Item -LiteralPath "$BackupRoot\$Id" -Recurse -Force -ErrorAction SilentlyContinue }
         Write-Output "done:$Id"
     } catch {
+        $message = $_.Exception.Message -replace '\s*\r?\n\s*', ' '
+        if ($message.StartsWith('SKIP:')) { Write-Output "skip:${Id}:$($message.Substring(5))"; return }
         $script:Failed = $true
-        Write-Output "fail:${Id}:$($_.Exception.Message -replace '\s*\r?\n\s*', ' ')"
+        Write-Output "fail:${Id}:$message"
     }
+}
+
+function Write-Backups {
+    Get-ChildItem -LiteralPath $BackupRoot -ErrorAction SilentlyContinue | ForEach-Object { "backup:$($_.PSChildName)" }
 }
 
 function Test-Tweak([string]$Id, [scriptblock]$Test) {
@@ -249,7 +281,7 @@ function Write-SystemInfo {
     # ProductName still says "Windows 10" on Windows 11.
     $name = $os.ProductName
     if ([int]$os.CurrentBuild -ge 22000) { $name = $name -replace 'Windows 10', 'Windows 11' }
-    $computer = Get-CimInstance Win32_ComputerSystem
+    $computer = Get-CimInstance Win32_ComputerSystem -OperationTimeoutSec 30
     $ram = [math]::Round($computer.TotalPhysicalMemory / 1GB)
     Write-Output "info:$name $($os.DisplayVersion) · build $($os.CurrentBuild) · $ram GB RAM"
 

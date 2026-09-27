@@ -26,6 +26,7 @@ const FIRST_RUN_HINT =
 const state = {
   tweaks: [],
   applied: null, // id -> bool once the status check finished, null while checking or after it failed
+  backups: new Set(), // ids with saved original values
   statusError: false,
   warning: "",
   selected: new Set(loadSetting("selected", [])),
@@ -67,8 +68,10 @@ const selectedTweaks = () => state.tweaks.filter((t) => state.selected.has(t.id)
 
 // What Apply would change: skips tweaks that are already applied.
 const toApply = (tweaks) => tweaks.filter((t) => !t.checkable || !isApplied(t));
-// What Revert would change: only tweaks that are applied and can be undone.
-const toRevert = (tweaks) => tweaks.filter((t) => t.reversible && (!t.checkable || isApplied(t)));
+// What Revert would change: tweaks that can be undone and are applied, or have saved values
+// (a tweak that only partly applied still has something to restore).
+const toRevert = (tweaks) => tweaks.filter((t) => t.reversible && (!t.checkable || isApplied(t) || state.backups.has(t.id)));
+const checking = () => !state.applied && !state.statusError;
 
 // Which preset matches the selection exactly, if any.
 function activePreset() {
@@ -96,6 +99,7 @@ function render() {
   const focused = document.activeElement;
   const row = focused?.closest?.(".row")?.dataset.id;
   const part = focused?.classList?.contains("expand") ? ".expand" : "input";
+  const group = focused?.dataset?.group;
 
   renderNav();
   renderHeader();
@@ -103,6 +107,7 @@ function render() {
   renderBulkbar();
 
   if (row) document.querySelector(`.row[data-id="${CSS.escape(row)}"] ${part}`)?.focus();
+  if (group) document.querySelector(`[data-group="${CSS.escape(group)}"]`)?.focus();
 }
 
 function renderNav() {
@@ -223,14 +228,14 @@ function renderBulkbar() {
   if (oneWay) info.push(`${oneWay} can't be undone`);
   $("#selected-count").textContent = `${picked.length} selected`;
   $("#selected-info").textContent = info.join(" · ");
-  $("#apply").disabled = state.running || !changes.length;
-  $("#revert").disabled = state.running || !toRevert(picked).length;
+  $("#apply").disabled = state.running || checking() || !changes.length;
+  $("#revert").disabled = state.running || checking() || !toRevert(picked).length;
 }
 
 // Running tweaks
 
 function confirmRun(revert) {
-  if (state.running) return;
+  if (state.running || checking()) return;
   const picked = selectedTweaks();
   runList = revert ? toRevert(picked) : toApply(picked);
   if (!runList.length) return;
@@ -276,6 +281,7 @@ async function run(revert) {
   $("#progress-title").textContent = `${verb}…`;
   $("#progress-close").disabled = true;
   $("#restart").hidden = true;
+  $("#restart").disabled = false;
   $("#log").innerHTML = "";
   setProgress(0);
 
@@ -294,12 +300,13 @@ async function run(revert) {
     const text = rest.join(":");
     if (kind === "run") {
       lines[text] = log(null, "", "·", nameOf(text));
-    } else if (kind === "done" || kind === "fail") {
+    } else if (kind === "done" || kind === "skip" || kind === "fail") {
       const [id, ...message] = text.split(":");
       finished += 1;
       setProgress(finished / total);
       $("#progress-title").textContent = `${verb} ${Math.min(finished + 1, total)} of ${total}…`;
       if (kind === "done") log(lines[id], "ok", "✓", nameOf(id));
+      else if (kind === "skip") log(lines[id], "skipped", "–", `${nameOf(id)}: ${message.join(":")}`);
       else log(lines[id], "fail", "✕", `${nameOf(id)}: ${message.join(":")}`);
     } else if (kind === "log") {
       log(null, "output", "", text);
@@ -309,13 +316,15 @@ async function run(revert) {
   try {
     const outcomes = await invoke("run_tweaks", { ids, revert, restorePoint });
     const restoreFailed = outcomes.some((o) => o.id === "restore-point" && !o.ok);
-    const done = outcomes.filter((o) => o.ok && o.id !== "restore-point");
+    const done = outcomes.filter((o) => o.ok && !o.skipped && o.id !== "restore-point");
+    const skipped = outcomes.filter((o) => o.skipped).length;
     // Anything without an outcome never ran, for example because the script stopped early.
-    const failed = ids.length - done.length;
+    const failed = ids.length - done.length - skipped;
     if (restoreFailed) {
       $("#progress-title").textContent = "The restore point failed, so nothing was changed.";
     } else {
       let title = `${revert ? "Reverted" : "Applied"} ${plural(done.length)}`;
+      if (skipped) title += `, ${skipped} skipped`;
       if (failed) title += `, ${failed} failed`;
       const needsRestart = done.some((o) => byId(o.id)?.restart);
       if (needsRestart) title += ". Restart to finish.";
@@ -351,6 +360,7 @@ async function refreshStatus() {
     const status = await invoke("get_status");
     if (current !== statusRun) return;
     state.applied = status.applied;
+    state.backups = new Set(status.backups);
     state.warning = status.warning;
     $("#system").textContent = status.system;
   } catch (error) {
@@ -441,10 +451,12 @@ $("#refresh").addEventListener("click", refreshStatus);
 $("#progress-close").addEventListener("click", () => $("#dialog").close());
 
 $("#restart").addEventListener("click", async () => {
+  $("#restart").disabled = true;
   try {
     await invoke("restart_pc");
-    $("#progress-title").textContent = "Restarting in 5 seconds…";
+    $("#progress-title").textContent = "Restarting…";
   } catch (error) {
+    $("#restart").disabled = false;
     $("#progress-title").textContent = `Could not restart: ${error}`;
   }
 });

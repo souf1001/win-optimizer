@@ -67,9 +67,10 @@
         <input type="checkbox" id="restore-point" checked>
         <span>Create a restore point first <span class="muted">(recommended)</span></span>
       </label>
-      <div class="dialog-actions">
-        <button value="cancel" class="btn ghost">Cancel</button>
+      <!-- OK comes first so Enter on the checkbox confirms; CSS shows it on the right. -->
+      <div class="dialog-actions reverse">
         <button value="ok" id="confirm-ok" class="btn primary">Apply</button>
+        <button value="cancel" class="btn ghost">Cancel</button>
       </div>
     </form>
 

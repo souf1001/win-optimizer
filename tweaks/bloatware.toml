@@ -286,17 +286,34 @@ $folders = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Exp
 if ("$($folders.Desktop) $($folders.Personal) $($folders.'My Pictures')" -match 'OneDrive') {
     throw 'Desktop, Documents or Pictures are backed up to OneDrive. Stop the backup in OneDrive settings first.'
 }
-$setup = Get-Item "$env:SystemRoot\System32\OneDriveSetup.exe", "$env:SystemRoot\SysWOW64\OneDriveSetup.exe", "$env:LOCALAPPDATA\Microsoft\OneDrive\*\OneDriveSetup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+$local = Get-KnownFolder LocalApplicationData
+$windows = Get-KnownFolder Windows
+$setup = Get-Item "$windows\System32\OneDriveSetup.exe", "$windows\SysWOW64\OneDriveSetup.exe", "$local\Microsoft\OneDrive\*\OneDriveSetup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $setup) { throw 'OneDrive setup not found' }
-# The per-user copy lives in a folder the user can write to, so only run it if Microsoft signed it.
-$signature = Get-AuthenticodeSignature $setup.FullName
-if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
-    throw "Refusing to run $($setup.FullName): not signed by Microsoft"
+# The per-user copy sits in a folder the user can write to. Copy it into a folder only admins
+# can write to, so nothing can be swapped or planted next to it, then check who signed it.
+$safe = Join-Path "$windows\Temp" "WinOptimizer-$([guid]::NewGuid())"
+$acl = New-Object Security.AccessControl.DirectorySecurity
+$acl.SetAccessRuleProtection($true, $false)
+foreach ($sid in 'S-1-5-18', 'S-1-5-32-544') {
+    $account = New-Object Security.Principal.SecurityIdentifier $sid
+    $acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule $account, 'FullControl', 'ContainerInherit, ObjectInherit', 'None', 'Allow'))
 }
-Stop-Process -Name OneDrive -Force -ErrorAction SilentlyContinue
-$process = Start-Process $setup.FullName '/uninstall' -PassThru
-if (-not $process.WaitForExit(10 * 60 * 1000)) { $process.Kill(); throw 'OneDrive setup did not finish within 10 minutes' }
+[IO.Directory]::CreateDirectory($safe, $acl) | Out-Null
+try {
+    $copy = Join-Path $safe 'OneDriveSetup.exe'
+    [IO.File]::Copy($setup.FullName, $copy)
+    $signature = Get-AuthenticodeSignature $copy
+    if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
+        throw "Refusing to run $($setup.FullName): not signed by Microsoft"
+    }
+    Stop-Process -Name OneDrive -Force -ErrorAction SilentlyContinue
+    $process = Start-Process $copy '/uninstall' -PassThru
+    if (-not $process.WaitForExit(10 * 60 * 1000)) { $process.Kill(); throw 'OneDrive setup did not finish within 10 minutes' }
+} finally {
+    Remove-Item -LiteralPath $safe -Recurse -Force -ErrorAction SilentlyContinue
+}
 '''
 check = '''
--not (Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe") -and -not (Test-Path "$env:ProgramFiles\Microsoft OneDrive\OneDrive.exe")
+-not (Test-Path "$(Get-KnownFolder LocalApplicationData)\Microsoft\OneDrive\OneDrive.exe") -and -not (Test-Path "$env:ProgramFiles\Microsoft OneDrive\OneDrive.exe")
 '''

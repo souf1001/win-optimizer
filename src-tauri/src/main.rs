@@ -15,12 +15,15 @@ struct Status {
     system: String,
     warning: String,
     applied: HashMap<String, bool>,
+    /// Tweaks with saved original values, which Revert can restore even if only partly applied.
+    backups: Vec<String>,
 }
 
 #[derive(Serialize)]
 struct Outcome {
     id: String,
     ok: bool,
+    skipped: bool,
     message: String,
 }
 
@@ -48,12 +51,15 @@ async fn run_tweaks(
 }
 
 fn parse_status(lines: &[String]) -> Status {
-    let mut status = Status { system: String::new(), warning: String::new(), applied: HashMap::new() };
+    let mut status =
+        Status { system: String::new(), warning: String::new(), applied: HashMap::new(), backups: Vec::new() };
     for line in lines {
         if let Some(info) = line.strip_prefix("info:") {
             status.system = info.to_string();
         } else if let Some(warning) = line.strip_prefix("warn:") {
             status.warning = warning.to_string();
+        } else if let Some(id) = line.strip_prefix("backup:") {
+            status.backups.push(id.to_string());
         } else if let Some((id, state)) = line.strip_prefix("state:").and_then(|s| s.rsplit_once(':')) {
             status.applied.insert(id.to_string(), state == "1");
         }
@@ -65,12 +71,15 @@ fn parse_outcomes(lines: &[String]) -> Vec<Outcome> {
     lines
         .iter()
         .filter_map(|line| {
-            if let Some(id) = line.strip_prefix("done:") {
-                Some(Outcome { id: id.to_string(), ok: true, message: String::new() })
-            } else {
-                let (id, message) = line.strip_prefix("fail:")?.split_once(':')?;
-                Some(Outcome { id: id.to_string(), ok: false, message: message.to_string() })
-            }
+            let (kind, rest) = line.split_once(':')?;
+            let (id, message) = rest.split_once(':').unwrap_or((rest, ""));
+            let (ok, skipped) = match kind {
+                "done" => (true, false),
+                "skip" => (true, true),
+                "fail" => (false, false),
+                _ => return None,
+            };
+            Some(Outcome { id: id.to_string(), ok, skipped, message: message.to_string() })
         })
         .collect()
 }
@@ -93,6 +102,9 @@ async fn powershell(app: &AppHandle, script: &str, stream: bool) -> Result<Vec<S
     .await
     .map_err(|e| e.to_string())?
 }
+
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 /// Reads the script from stdin, so it never touches disk where another process could swap it.
 /// Module lookup is pinned to the system folder so user-writable module folders can't be loaded.
@@ -129,7 +141,6 @@ fn run_powershell(script: &str, mut on_line: impl FnMut(&str)) -> Result<Vec<Str
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         command.creation_flags(CREATE_NO_WINDOW);
     }
     let mut child = command.spawn().map_err(|e| format!("could not start PowerShell: {e}"))?;
@@ -160,7 +171,7 @@ fn run_powershell(script: &str, mut on_line: impl FnMut(&str)) -> Result<Vec<Str
     let errors = errors.join().unwrap_or_default();
     let errors = errors.trim();
     // A script that died before reporting anything is an error, not "0 tweaks applied".
-    let reported = lines.iter().any(|l| l.starts_with("done:") || l.starts_with("fail:") || l.starts_with("state:"));
+    let reported = lines.iter().any(|l| ["done:", "skip:", "fail:", "state:"].iter().any(|p| l.starts_with(p)));
     if !status.success() && !reported {
         return Err(if errors.is_empty() { format!("PowerShell exited with {status}") } else { errors.to_string() });
     }
@@ -187,13 +198,22 @@ fn system_dir() -> PathBuf {
     PathBuf::from(r"C:\Windows\System32")
 }
 
+/// Restarts now. With a zero timeout Windows does not force-close apps, so unsaved work still prompts.
 #[tauri::command]
 fn restart_pc() -> Result<(), String> {
-    Command::new(system_dir().join("shutdown.exe"))
-        .args(["/r", "/t", "5", "/d", "p:4:1"])
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| e.to_string())
+    let mut command = Command::new(system_dir().join("shutdown.exe"));
+    command.args(["/r", "/t", "0", "/d", "p:4:1"]);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+    let status = command.status().map_err(|e| e.to_string())?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("shutdown.exe exited with {status}"))
+    }
 }
 
 fn main() {
@@ -232,7 +252,7 @@ mod tests {
 
         let mut problems = Vec::new();
         for outcome in &applied {
-            if !outcome.ok {
+            if !outcome.ok || outcome.skipped {
                 println!("skipped {}: {}", outcome.id, outcome.message);
             } else if during.applied.get(&outcome.id) != Some(&true) {
                 println!("{} did nothing on this machine (skipped or unsupported)", outcome.id);

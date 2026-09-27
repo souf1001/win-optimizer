@@ -85,7 +85,7 @@ name = "Disable hibernation"
 description = "Deletes hiberfil.sys, which frees disk space equal to roughly 40% of your RAM. Also disables Fast Startup. Desktop PCs only; laptops keep hibernate as a low-battery safety net."
 level = "medium"
 apply = '''
-if (Get-CimInstance Win32_Battery) { return 'Skipped: laptops keep hibernation for low battery' }
+if (Get-CimInstance Win32_Battery) { Skip-Tweak 'laptops keep hibernation for low battery' }
 Save-Original 'hibernate' ([string](Test-Path "$env:SystemDrive\hiberfil.sys"))
 powercfg /hibernate off
 if ($LASTEXITCODE) { throw 'powercfg could not turn off hibernation' }
@@ -104,8 +104,8 @@ name = "Use the Ultimate Performance power plan"
 description = "Keeps CPU cores awake at full clock. Worth 0-2% FPS for more idle power and heat. Skipped on laptops and on AMD X3D CPUs with two CCDs, which need Balanced."
 level = "aggressive"
 apply = '''
-if (Get-CimInstance Win32_Battery) { return 'Skipped: meant for desktop PCs (battery detected)' }
-if ((Get-CimInstance Win32_Processor).Name -match '(79|99)[05]0X3D') { return 'Skipped: this AMD X3D CPU needs the Balanced plan' }
+if (Get-CimInstance Win32_Battery) { Skip-Tweak 'meant for desktop PCs (battery detected)' }
+if ((Get-CimInstance Win32_Processor).Name -match '(79|99)[05]0X3D') { Skip-Tweak 'this AMD X3D CPU needs the Balanced plan' }
 $plan = '3ff9831b-6f80-4830-8178-736cd4229e7b'
 Save-Original 'plan' (Get-PowerScheme)
 if (-not ((powercfg /list) -match $plan)) {
@@ -129,7 +129,7 @@ name = "Disable power throttling"
 description = "Background apps are no longer put into efficiency mode, so a game's launcher, voice chat and overlays keep full CPU speed. Desktop PCs only."
 level = "medium"
 apply = '''
-if (Get-CimInstance Win32_Battery) { return 'Skipped: meant for desktop PCs (battery detected)' }
+if (Get-CimInstance Win32_Battery) { Skip-Tweak 'meant for desktop PCs (battery detected)' }
 Set-TweakReg 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling' 'PowerThrottlingOff' DWord 1
 '''
 revert = "Undo-TweakReg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottling' 'PowerThrottlingOff' DWord $null"
@@ -141,19 +141,21 @@ name = "Limit Defender scan CPU usage"
 description = "Scheduled Defender scans use at most 20% CPU at low priority instead of 50%. Protection stays fully on. Skipped when another antivirus is active."
 level = "medium"
 apply = '''
-if ((Get-MpComputerStatus -ErrorAction SilentlyContinue).AMRunningMode -ne 'Normal') { return 'Skipped: Defender is not the active antivirus' }
+if (-not (Get-Command Get-MpComputerStatus -ErrorAction SilentlyContinue) -or (Get-MpComputerStatus).AMRunningMode -ne 'Normal') {
+    Skip-Tweak 'Defender is not the active antivirus'
+}
 $p = Get-MpPreference
 Save-Original 'defender' "$($p.ScanAvgCPULoadFactor)|$($p.EnableLowCpuPriority)"
 Set-MpPreference -ScanAvgCPULoadFactor 20 -EnableLowCpuPriority $true
 '''
 revert = '''
-if ((Get-MpComputerStatus -ErrorAction SilentlyContinue).AMRunningMode -ne 'Normal') { return }
+if (-not (Get-Command Get-MpComputerStatus -ErrorAction SilentlyContinue) -or (Get-MpComputerStatus).AMRunningMode -ne 'Normal') { return }
 $load, $low = "$(Get-Original 'defender')" -split '\|'
 if (-not $load) { $load, $low = 50, 'False' }
 Set-MpPreference -ScanAvgCPULoadFactor ([int]$load) -EnableLowCpuPriority ($low -eq 'True')
 '''
 check = '''
-if ((Get-MpComputerStatus -ErrorAction SilentlyContinue).AMRunningMode -ne 'Normal') { return $true }
+if (-not (Get-Command Get-MpComputerStatus -ErrorAction SilentlyContinue) -or (Get-MpComputerStatus).AMRunningMode -ne 'Normal') { return $true }
 $p = Get-MpPreference
 $p.ScanAvgCPULoadFactor -le 20 -and $p.EnableLowCpuPriority
 '''
