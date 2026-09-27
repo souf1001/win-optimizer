@@ -286,7 +286,9 @@ if (Get-WindowsOptionalFeature -Online -FeatureName Recall -ErrorAction Silently
 }
 '''
 revert = '''
-Enable-WindowsOptionalFeature -Online -FeatureName Recall -NoRestart | Out-Null
+if (Get-WindowsOptionalFeature -Online -FeatureName Recall -ErrorAction SilentlyContinue) {
+    Enable-WindowsOptionalFeature -Online -FeatureName Recall -NoRestart | Out-Null
+}
 '''
 check = '''
 $f = Get-WindowsOptionalFeature -Online -FeatureName Recall -ErrorAction SilentlyContinue

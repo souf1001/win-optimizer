@@ -44,8 +44,8 @@ id = "reserved-storage"
 name = "Disable reserved storage"
 description = "Frees about 7 GB Windows keeps for updates. Large updates may fail when the disk is nearly full. Fails while an update is pending."
 level = "aggressive"
-apply = 'Set-WindowsReservedStorageState -State Disabled'
-revert = 'Set-WindowsReservedStorageState -State Enabled'
+apply = 'Set-WindowsReservedStorageState -State Disabled | Out-Null'
+revert = 'Set-WindowsReservedStorageState -State Enabled | Out-Null'
 check = "(Get-WindowsReservedStorageState).ReservedStorageState -eq 'Disabled'"
 
 [[tweak]]
