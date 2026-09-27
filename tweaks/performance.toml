@@ -86,14 +86,17 @@ description = "Deletes hiberfil.sys, which frees disk space equal to roughly 40%
 level = "medium"
 apply = '''
 if (Get-CimInstance Win32_Battery) { return 'Skipped: laptops keep hibernation for low battery' }
-Save-Original 'hibernate' ([string](Test-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Power' 'HibernateEnabled' 1))
+Save-Original 'hibernate' ([string](Test-Path "$env:SystemDrive\hiberfil.sys"))
 powercfg /hibernate off
 if ($LASTEXITCODE) { throw 'powercfg could not turn off hibernation' }
 '''
 revert = '''
-if ((Get-Original 'hibernate') -ne 'False') { powercfg /hibernate on }
+if ((Get-Original 'hibernate') -eq 'True') {
+    powercfg /hibernate on
+    if ($LASTEXITCODE) { throw 'powercfg could not turn hibernation back on' }
+}
 '''
-check = "Test-Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power' 'HibernateEnabled' 0"
+check = '''-not (Test-Path "$env:SystemDrive\hiberfil.sys")'''
 
 [[tweak]]
 id = "ultimate-plan"
